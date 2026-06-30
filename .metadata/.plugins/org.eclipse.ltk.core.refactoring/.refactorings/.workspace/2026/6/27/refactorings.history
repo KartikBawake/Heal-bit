@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;healbit&apos; to &apos;backend&apos;" description="Rename resource &apos;healbit&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="/healbit" name="backend" stamp="1782803177852" updateReferences="true"/>
+</session>

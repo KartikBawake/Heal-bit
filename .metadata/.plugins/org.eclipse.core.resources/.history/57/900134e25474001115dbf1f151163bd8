@@ -1,0 +1,84 @@
+package com.healbit.service;
+
+import com.healbit.dto.HospitalResponse;
+import com.healbit.dto.HospitalUpdateRequest;
+import com.healbit.entity.Hospital;
+import com.healbit.entity.HospitalStatus;
+import com.healbit.exception.ResourceNotFoundException;
+import com.healbit.repository.HospitalRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+public class HospitalService {
+
+    private final HospitalRepository hospitalRepository;
+
+    public HospitalService(HospitalRepository hospitalRepository) {
+        this.hospitalRepository = hospitalRepository;
+    }
+
+    /** Public browse + optional search by city or name. Only ACTIVE, non-deleted hospitals are visible. */
+    public List<HospitalResponse> browseHospitals(String city, String name) {
+        List<Hospital> hospitals;
+        if (StringUtils.hasText(city)) {
+            hospitals = hospitalRepository
+                    .findByStatusAndDeletedFalseAndCityContainingIgnoreCase(HospitalStatus.ACTIVE, city);
+        } else if (StringUtils.hasText(name)) {
+            hospitals = hospitalRepository
+                    .findByStatusAndDeletedFalseAndHospitalNameContainingIgnoreCase(HospitalStatus.ACTIVE, name);
+        } else {
+            hospitals = hospitalRepository.findAllByStatusAndDeletedFalse(HospitalStatus.ACTIVE);
+        }
+        return hospitals.stream().map(this::toResponse).collect(Collectors.toList());
+    }
+
+    public HospitalResponse getById(Long hospitalId) {
+        Hospital hospital = hospitalRepository.findByHospitalIdAndDeletedFalse(hospitalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Hospital not found with id " + hospitalId));
+        return toResponse(hospital);
+    }
+
+    public HospitalResponse updateProfile(Long hospitalId, HospitalUpdateRequest request) {
+        Hospital hospital = hospitalRepository.findByHospitalIdAndDeletedFalse(hospitalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Hospital not found with id " + hospitalId));
+
+        if (StringUtils.hasText(request.getHospitalName())) hospital.setHospitalName(request.getHospitalName());
+        if (request.getPhone() != null) hospital.setPhone(request.getPhone());
+        if (request.getAddress() != null) hospital.setAddress(request.getAddress());
+        if (request.getCity() != null) hospital.setCity(request.getCity());
+        if (request.getState() != null) hospital.setState(request.getState());
+        if (request.getPincode() != null) hospital.setPincode(request.getPincode());
+        if (request.getDescription() != null) hospital.setDescription(request.getDescription());
+
+        return toResponse(hospitalRepository.save(hospital));
+    }
+
+    /** Soft delete: a hospital deactivates its own account. */
+    public void softDelete(Long hospitalId) {
+        Hospital hospital = hospitalRepository.findByHospitalIdAndDeletedFalse(hospitalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Hospital not found with id " + hospitalId));
+        hospital.setDeleted(true);
+        hospitalRepository.save(hospital);
+    }
+
+    private HospitalResponse toResponse(Hospital hospital) {
+        HospitalResponse response = new HospitalResponse();
+        response.setHospitalId(hospital.getHospitalId());
+        response.setHospitalName(hospital.getHospitalName());
+        response.setRegistrationNumber(hospital.getRegistrationNumber());
+        response.setEmail(hospital.getEmail());
+        response.setPhone(hospital.getPhone());
+        response.setAddress(hospital.getAddress());
+        response.setCity(hospital.getCity());
+        response.setState(hospital.getState());
+        response.setPincode(hospital.getPincode());
+        response.setDescription(hospital.getDescription());
+        response.setStatus(hospital.getStatus());
+        response.setCreatedAt(hospital.getCreatedAt());
+        return response;
+    }
+}
