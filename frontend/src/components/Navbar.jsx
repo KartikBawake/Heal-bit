@@ -1,5 +1,13 @@
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import Icon from "./icons";
+
+const SIGN_IN_OPTIONS = [
+  { path: "/patient/login", label: "Patient", description: "Book appointments and manage your care", icon: "user" },
+  { path: "/hospital/login", label: "Hospital", description: "Manage doctors and appointment requests", icon: "hospital" },
+  { path: "/admin/login", label: "Administrator", description: "Approve hospitals and oversee the platform", icon: "chart" },
+];
 
 const LINKS = {
   PATIENT: [
@@ -24,13 +32,38 @@ const LINKS = {
 export default function Navbar() {
   const { auth, isAuthenticated, role, logout } = useAuth();
   const navigate = useNavigate();
+  const [signInOpen, setSignInOpen] = useState(false);
+  const signInRef = useRef(null);
 
   // Only show role links when there is a valid, authenticated session.
   const links = isAuthenticated && role ? LINKS[role] || [] : [];
 
+  useEffect(() => {
+    if (!signInOpen) return;
+
+    const onKey = (e) => e.key === "Escape" && setSignInOpen(false);
+    const onClickOutside = (e) => {
+      if (signInRef.current && !signInRef.current.contains(e.target)) {
+        setSignInOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onClickOutside);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onClickOutside);
+    };
+  }, [signInOpen]);
+
   const handleLogout = () => {
     logout();
     navigate("/");
+  };
+
+  const handleSignInChoice = (path) => {
+    setSignInOpen(false);
+    navigate(path);
   };
 
   return (
@@ -62,7 +95,42 @@ export default function Navbar() {
               </button>
             </>
           ) : (
-            <Link to="/" className="nav-link">Sign in</Link>
+            <div className="nav-signin-wrap" ref={signInRef}>
+              <button
+                type="button"
+                className={`nav-link nav-signin-btn${signInOpen ? " open" : ""}`}
+                aria-expanded={signInOpen}
+                aria-haspopup="true"
+                onClick={() => setSignInOpen((open) => !open)}
+              >
+                Sign in
+              </button>
+
+              {signInOpen && (
+                <div className="signin-dropdown" role="menu" aria-label="Sign in as">
+                  <p className="signin-dropdown-title">Sign in as</p>
+                  <div className="signin-options">
+                    {SIGN_IN_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.path}
+                        type="button"
+                        role="menuitem"
+                        className="signin-option"
+                        onClick={() => handleSignInChoice(opt.path)}
+                      >
+                        <span className="signin-option-icon">
+                          <Icon name={opt.icon} size={20} />
+                        </span>
+                        <span className="signin-option-body">
+                          <strong>{opt.label}</strong>
+                          <span>{opt.description}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
