@@ -24,7 +24,9 @@ const LINKS = {
 export default function Navbar() {
   const { auth, isAuthenticated, role, logout } = useAuth();
   const navigate = useNavigate();
-  const links = role ? LINKS[role] : [];
+
+  // Only show role links when there is a valid, authenticated session.
+  const links = isAuthenticated && role ? LINKS[role] || [] : [];
 
   const handleLogout = () => {
     logout();

@@ -18,12 +18,13 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// If the token is rejected, clear the stale session.
+// If the token is rejected, clear the session AND notify the app so the UI updates.
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response && err.response.status === 401) {
       localStorage.removeItem("healbit_auth");
+      window.dispatchEvent(new Event("healbit:logout"));
     }
     return Promise.reject(err);
   }

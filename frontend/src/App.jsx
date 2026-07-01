@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import PublicOnlyRoute from "./components/PublicOnlyRoute";
 
 import Home from "./pages/Home";
 import PatientLogin from "./pages/auth/PatientLogin";
@@ -30,14 +31,13 @@ export default function App() {
       <Navbar />
       <main className="container">
         <Routes>
-          <Route path="/" element={<Home />} />
-
-          {/* Auth */}
-          <Route path="/patient/login" element={<PatientLogin />} />
-          <Route path="/patient/register" element={<PatientRegister />} />
-          <Route path="/hospital/login" element={<HospitalLogin />} />
-          <Route path="/hospital/register" element={<HospitalRegister />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
+          {/* Public — redirect to dashboard if already signed in */}
+          <Route path="/" element={<PublicOnlyRoute><Home /></PublicOnlyRoute>} />
+          <Route path="/patient/login" element={<PublicOnlyRoute><PatientLogin /></PublicOnlyRoute>} />
+          <Route path="/patient/register" element={<PublicOnlyRoute><PatientRegister /></PublicOnlyRoute>} />
+          <Route path="/hospital/login" element={<PublicOnlyRoute><HospitalLogin /></PublicOnlyRoute>} />
+          <Route path="/hospital/register" element={<PublicOnlyRoute><HospitalRegister /></PublicOnlyRoute>} />
+          <Route path="/admin/login" element={<PublicOnlyRoute><AdminLogin /></PublicOnlyRoute>} />
 
           {/* Patient */}
           <Route path="/patient" element={<ProtectedRoute allow={["PATIENT"]}><PatientDashboard /></ProtectedRoute>} />

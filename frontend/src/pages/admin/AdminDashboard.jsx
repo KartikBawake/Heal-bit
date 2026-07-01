@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { getDashboard } from "../../api/adminApi";
 import { getErrorMessage } from "../../utils/error";
+import DonutChart from "../../components/DonutChart";
+import BarChart from "../../components/BarChart";
 
 const Stat = ({ value, label }) => (
   <div className="stat-card">
@@ -46,19 +48,29 @@ export default function AdminDashboard() {
             <Stat value={stats.totalAppointments} label="Appointments" />
           </div>
 
-          <h2 className="mt-3">Hospitals by status</h2>
-          <div className="grid grid-3 mt-2">
-            <Stat value={stats.pendingHospitals} label="Pending approval" />
-            <Stat value={stats.activeHospitals} label="Active" />
-            <Stat value={stats.rejectedHospitals} label="Rejected" />
-          </div>
+          <div className="chart-grid mt-3">
+            <div className="card chart-card">
+              <h3>Hospitals by status</h3>
+              <DonutChart
+                segments={[
+                  { label: "Pending", value: stats.pendingHospitals, color: "#b45309" },
+                  { label: "Active", value: stats.activeHospitals, color: "#15803d" },
+                  { label: "Rejected", value: stats.rejectedHospitals, color: "#b91c1c" },
+                ]}
+              />
+            </div>
 
-          <h2 className="mt-3">Appointments by status</h2>
-          <div className="grid grid-4 mt-2">
-            <Stat value={stats.pendingAppointments} label="Pending" />
-            <Stat value={stats.confirmedAppointments} label="Confirmed" />
-            <Stat value={stats.completedAppointments} label="Completed" />
-            <Stat value={stats.cancelledAppointments} label="Cancelled" />
+            <div className="card chart-card">
+              <h3>Appointments by status</h3>
+              <BarChart
+                rows={[
+                  { label: "Pending", value: stats.pendingAppointments, color: "#b45309" },
+                  { label: "Confirmed", value: stats.confirmedAppointments, color: "#15803d" },
+                  { label: "Completed", value: stats.completedAppointments, color: "#0f766e" },
+                  { label: "Cancelled", value: stats.cancelledAppointments, color: "#b91c1c" },
+                ]}
+              />
+            </div>
           </div>
         </>
       )}

@@ -1,0 +1,104 @@
+package com.healbit.service;
+
+import com.healbit.dto.DoctorRequest;
+import com.healbit.dto.DoctorResponse;
+import com.healbit.entity.Doctor;
+import com.healbit.entity.Hospital;
+import com.healbit.exception.ResourceNotFoundException;
+import com.healbit.exception.UnauthorizedException;
+import com.healbit.repository.DoctorRepository;
+import com.healbit.repository.HospitalRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import org.springframework.transaction.annotation.Transactional;
+@Transactional
+@Service
+public class DoctorService {
+
+    private final DoctorRepository doctorRepository;
+    private final HospitalRepository hospitalRepository;
+
+    public DoctorService(DoctorRepository doctorRepository, HospitalRepository hospitalRepository) {
+        this.doctorRepository = doctorRepository;
+        this.hospitalRepository = hospitalRepository;
+    }
+
+    /** Browse doctors. If hospitalId is provided, list that hospital's doctors; otherwise list all. */
+    public List<DoctorResponse> listDoctors(Long hospitalId) {
+        List<Doctor> doctors = (hospitalId != null)
+                ? doctorRepository.findByHospital_HospitalIdAndDeletedFalse(hospitalId)
+                : doctorRepository.findAllByDeletedFalse();
+        return doctors.stream().map(this::toResponse).collect(Collectors.toList());
+    }
+
+    /** A hospital lists only its own doctors. */
+    public List<DoctorResponse> listOwnDoctors(Long hospitalId) {
+        return doctorRepository.findByHospital_HospitalIdAndDeletedFalse(hospitalId)
+                .stream().map(this::toResponse).collect(Collectors.toList());
+    }
+
+    public DoctorResponse addDoctor(Long hospitalId, DoctorRequest request) {
+        Hospital hospital = hospitalRepository.findByHospitalIdAndDeletedFalse(hospitalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Hospital not found with id " + hospitalId));
+
+        Doctor doctor = new Doctor();
+        doctor.setHospital(hospital);
+        applyRequest(doctor, request);
+
+        return toResponse(doctorRepository.save(doctor));
+    }
+
+    public DoctorResponse updateDoctor(Long hospitalId, DoctorRequest request) {
+        if (request.getDoctorId() == null) {
+            throw new IllegalArgumentException("doctorId is required to update a doctor");
+        }
+        Doctor doctor = doctorRepository.findByDoctorIdAndDeletedFalse(request.getDoctorId())
+                .orElseThrow(() -> new ResourceNotFoundException("Doctor not found with id " + request.getDoctorId()));
+
+        ensureOwnership(doctor, hospitalId);
+        applyRequest(doctor, request);
+
+        return toResponse(doctorRepository.save(doctor));
+    }
+
+    public void deleteDoctor(Long hospitalId, Long doctorId) {
+        Doctor doctor = doctorRepository.findByDoctorIdAndDeletedFalse(doctorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Doctor not found with id " + doctorId));
+        ensureOwnership(doctor, hospitalId);
+        doctor.setDeleted(true);
+        doctorRepository.save(doctor);
+    }
+
+    private void ensureOwnership(Doctor doctor, Long hospitalId) {
+        if (!doctor.getHospital().getHospitalId().equals(hospitalId)) {
+            throw new UnauthorizedException("Hospitals can only manage their own doctors");
+        }
+    }
+
+    private void applyRequest(Doctor doctor, DoctorRequest request) {
+        doctor.setDoctorName(request.getDoctorName());
+        doctor.setQualification(request.getQualification());
+        doctor.setSpecialization(request.getSpecialization());
+        doctor.setExperience(request.getExperience());
+        doctor.setConsultationFee(request.getConsultationFee());
+        doctor.setAvailableDays(request.getAvailableDays());
+        doctor.setAvailableTime(request.getAvailableTime());
+    }
+
+    private DoctorResponse toResponse(Doctor doctor) {
+        DoctorResponse response = new DoctorResponse();
+        response.setDoctorId(doctor.getDoctorId());
+        response.setHospitalId(doctor.getHospital().getHospitalId());
+        response.setHospitalName(doctor.getHospital().getHospitalName());
+        response.setDoctorName(doctor.getDoctorName());
+        response.setQualification(doctor.getQualification());
+        response.setSpecialization(doctor.getSpecialization());
+        response.setExperience(doctor.getExperience());
+        response.setConsultationFee(doctor.getConsultationFee());
+        response.setAvailableDays(doctor.getAvailableDays());
+        response.setAvailableTime(doctor.getAvailableTime());
+        return response;
+    }
+}
