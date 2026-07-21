@@ -40,6 +40,10 @@ public class Hospital {
     @Column(length = 1000)
     private String description;
 
+    // Optional hospital photo stored as a base64 data URL.
+    @Column(columnDefinition = "LONGTEXT")
+    private String imageData;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private HospitalStatus status = HospitalStatus.PENDING;
@@ -96,6 +100,9 @@ public class Hospital {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getImageData() { return imageData; }
+    public void setImageData(String imageData) { this.imageData = imageData; }
 
     public HospitalStatus getStatus() { return status; }
     public void setStatus(HospitalStatus status) { this.status = status; }

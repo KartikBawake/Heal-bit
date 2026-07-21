@@ -37,26 +37,42 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Public auth endpoints
+                // Public auth endpoints (patient/hospital/doctor/admin login + registration)
                 .requestMatchers("/auth/**").permitAll()
-                // Public browsing for patients
+
+                // Doctor self-service — declared before the public /doctors/** rule so it wins.
+                .requestMatchers(HttpMethod.GET, "/doctors/me").hasRole("DOCTOR")
+                .requestMatchers(HttpMethod.PUT, "/doctors/me/schedule").hasRole("DOCTOR")
+                .requestMatchers(HttpMethod.GET, "/doctors/dashboard").hasRole("DOCTOR")
+
+                // Hospital insights — declared before the public /hospitals/** rule.
+                .requestMatchers(HttpMethod.GET, "/hospitals/dashboard").hasRole("HOSPITAL")
+
+                // Public browsing for patients (hospitals, doctors, and open slots)
                 .requestMatchers(HttpMethod.GET, "/hospitals", "/hospitals/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/doctors", "/doctors/**").permitAll()
+
                 // Patient-only
                 .requestMatchers("/patients/**").hasRole("PATIENT")
                 .requestMatchers(HttpMethod.POST, "/appointments").hasRole("PATIENT")
                 .requestMatchers(HttpMethod.DELETE, "/appointments/**").hasRole("PATIENT")
-                // Hospital-only
+
+                // Hospital manages its own doctors and profile
                 .requestMatchers(HttpMethod.POST, "/doctors").hasRole("HOSPITAL")
                 .requestMatchers(HttpMethod.PUT, "/doctors").hasRole("HOSPITAL")
                 .requestMatchers(HttpMethod.DELETE, "/doctors/**").hasRole("HOSPITAL")
                 .requestMatchers(HttpMethod.PUT, "/hospitals").hasRole("HOSPITAL")
                 .requestMatchers(HttpMethod.DELETE, "/hospitals").hasRole("HOSPITAL")
-                .requestMatchers(HttpMethod.PUT, "/appointments/status").hasRole("HOSPITAL")
-                // Appointments listing for both patient and hospital
-                .requestMatchers(HttpMethod.GET, "/appointments").hasAnyRole("PATIENT", "HOSPITAL")
+
+                // Doctor confirms / rejects / completes appointments
+                .requestMatchers(HttpMethod.PUT, "/appointments/status").hasRole("DOCTOR")
+
+                // Appointment listing for patient, hospital, and doctor
+                .requestMatchers(HttpMethod.GET, "/appointments").hasAnyRole("PATIENT", "HOSPITAL", "DOCTOR")
+
                 // Admin-only
                 .requestMatchers("/admin/**").hasRole("ADMIN")
+
                 // Everything else needs authentication
                 .anyRequest().authenticated()
             )

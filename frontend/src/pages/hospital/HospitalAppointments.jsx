@@ -1,78 +1,67 @@
-import { useEffect, useState } from "react";
-import { listAppointments, updateAppointmentStatus } from "../../api/appointmentApi";
+import { useEffect, useMemo, useState } from "react";
+import { listAppointments } from "../../api/appointmentApi";
 import { getErrorMessage } from "../../utils/error";
 import StatusBadge from "../../components/StatusBadge";
 
+const FILTERS = ["ALL", "PENDING", "CONFIRMED", "COMPLETED", "REJECTED", "CANCELLED"];
+
+// Read-only for hospitals: appointments are confirmed/rejected/completed by the doctors themselves.
 export default function HospitalAppointments() {
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("ALL");
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      const { data } = await listAppointments();
-      setItems(data);
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    listAppointments()
+      .then(({ data }) => setItems(data))
+      .catch((err) => setError(getErrorMessage(err)))
+      .finally(() => setLoading(false));
+  }, []);
 
-  useEffect(() => { load(); }, []);
-
-  const setStatus = async (appointmentId, status) => {
-    try {
-      await updateAppointmentStatus({ appointmentId, status });
-      load();
-    } catch (err) {
-      setError(getErrorMessage(err));
-    }
-  };
+  const shown = useMemo(
+    () => (filter === "ALL" ? items : items.filter((a) => a.status === filter)),
+    [items, filter]
+  );
 
   return (
     <div>
       <div className="page-head">
         <div>
           <p className="eyebrow">Hospital</p>
-          <h1>Appointment requests</h1>
+          <h1>Appointments</h1>
+          <p className="sub">Every appointment booked across your doctors. Doctors manage their own confirmations.</p>
         </div>
+      </div>
+
+      <div className="filter-row">
+        {FILTERS.map((f) => (
+          <button key={f} className={`chip-btn${filter === f ? " active" : ""}`} onClick={() => setFilter(f)}>
+            {f.charAt(0) + f.slice(1).toLowerCase()}
+          </button>
+        ))}
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
       {loading ? (
-        <p className="muted">Loading...</p>
-      ) : items.length === 0 ? (
-        <div className="card empty">No appointments yet.</div>
+        <p className="muted">Loading…</p>
+      ) : shown.length === 0 ? (
+        <div className="card empty">No appointments here.</div>
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>Patient</th><th>Doctor</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th><th>Actions</th></tr>
+              <tr><th>Patient</th><th>Doctor</th><th>Specialty</th><th>Date</th><th>Time</th><th>Status</th></tr>
             </thead>
             <tbody>
-              {items.map((a) => (
+              {shown.map((a) => (
                 <tr key={a.appointmentId}>
                   <td>{a.patientName}</td>
                   <td>{a.doctorName}</td>
+                  <td>{a.doctorSpecialization || "—"}</td>
                   <td>{a.appointmentDate}</td>
                   <td>{a.appointmentTime}</td>
-                  <td>{a.reason}</td>
                   <td><StatusBadge status={a.status} /></td>
-                  <td>
-                    <div className="actions">
-                      {a.status === "PENDING" && (
-                        <>
-                          <button className="btn btn-primary btn-sm" onClick={() => setStatus(a.appointmentId, "CONFIRMED")}>Confirm</button>
-                          <button className="btn btn-danger btn-sm" onClick={() => setStatus(a.appointmentId, "CANCELLED")}>Reject</button>
-                        </>
-                      )}
-                      {a.status === "CONFIRMED" && (
-                        <button className="btn btn-outline btn-sm" onClick={() => setStatus(a.appointmentId, "COMPLETED")}>Mark completed</button>
-                      )}
-                    </div>
-                  </td>
                 </tr>
               ))}
             </tbody>

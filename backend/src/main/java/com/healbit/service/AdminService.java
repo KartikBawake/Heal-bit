@@ -1,5 +1,9 @@
 package com.healbit.service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -7,8 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.healbit.dto.AdminDashboardResponse;
+import com.healbit.dto.HospitalPerformance;
 import com.healbit.dto.HospitalResponse;
 import com.healbit.dto.PatientProfileResponse;
+import com.healbit.entity.Appointment;
 import com.healbit.entity.AppointmentStatus;
 import com.healbit.entity.Hospital;
 import com.healbit.entity.HospitalStatus;
@@ -38,28 +44,56 @@ public class AdminService {
         this.appointmentRepository = appointmentRepository;
     }
 
+    /**
+     * Hospitals for the admin table, filtered by:
+     * "pending" | "active" | "rejected" | "new" (last 7 days) | "recent"/"all" (newest first).
+     */
+    public List<HospitalResponse> getHospitals(String filter) {
+        String f = filter == null ? "all" : filter.trim().toLowerCase();
+        List<Hospital> hospitals;
+        switch (f) {
+            case "pending":
+                hospitals = hospitalRepository.findByStatusAndDeletedFalseOrderByCreatedAtDesc(HospitalStatus.PENDING);
+                break;
+            case "active":
+                hospitals = hospitalRepository.findByStatusAndDeletedFalseOrderByCreatedAtDesc(HospitalStatus.ACTIVE);
+                break;
+            case "rejected":
+                hospitals = hospitalRepository.findByStatusAndDeletedFalseOrderByCreatedAtDesc(HospitalStatus.REJECTED);
+                break;
+            case "new":
+                LocalDateTime cutoff = LocalDateTime.now().minusDays(7);
+                hospitals = hospitalRepository.findAllByDeletedFalseOrderByCreatedAtDesc()
+                        .stream().filter(h -> h.getCreatedAt() != null && h.getCreatedAt().isAfter(cutoff))
+                        .collect(Collectors.toList());
+                break;
+            case "recent":
+            case "all":
+            default:
+                hospitals = hospitalRepository.findAllByDeletedFalseOrderByCreatedAtDesc();
+                break;
+        }
+        return hospitals.stream().map(this::toHospitalResponse).collect(Collectors.toList());
+    }
+
     public List<HospitalResponse> getAllHospitals() {
-        return hospitalRepository.findAllByDeletedFalse()
-                .stream().map(this::toHospitalResponse).collect(Collectors.toList());
+        return getHospitals("all");
     }
 
     public HospitalResponse approveHospital(Long hospitalId) {
-        Hospital hospital = hospitalRepository.findByHospitalIdAndDeletedFalse(hospitalId)
-                .orElseThrow(() -> new ResourceNotFoundException("Hospital not found with id " + hospitalId));
+        Hospital hospital = requireHospital(hospitalId);
         hospital.setStatus(HospitalStatus.ACTIVE);
         return toHospitalResponse(hospitalRepository.save(hospital));
     }
 
     public HospitalResponse rejectHospital(Long hospitalId) {
-        Hospital hospital = hospitalRepository.findByHospitalIdAndDeletedFalse(hospitalId)
-                .orElseThrow(() -> new ResourceNotFoundException("Hospital not found with id " + hospitalId));
+        Hospital hospital = requireHospital(hospitalId);
         hospital.setStatus(HospitalStatus.REJECTED);
         return toHospitalResponse(hospitalRepository.save(hospital));
     }
 
     public void removeHospital(Long hospitalId) {
-        Hospital hospital = hospitalRepository.findByHospitalIdAndDeletedFalse(hospitalId)
-                .orElseThrow(() -> new ResourceNotFoundException("Hospital not found with id " + hospitalId));
+        Hospital hospital = requireHospital(hospitalId);
         hospital.setDeleted(true);
         hospitalRepository.save(hospital);
     }
@@ -88,8 +122,44 @@ public class AdminService {
         dto.setPendingAppointments(appointmentRepository.countByStatus(AppointmentStatus.PENDING));
         dto.setConfirmedAppointments(appointmentRepository.countByStatus(AppointmentStatus.CONFIRMED));
         dto.setCompletedAppointments(appointmentRepository.countByStatus(AppointmentStatus.COMPLETED));
+        dto.setRejectedAppointments(appointmentRepository.countByStatus(AppointmentStatus.REJECTED));
         dto.setCancelledAppointments(appointmentRepository.countByStatus(AppointmentStatus.CANCELLED));
+
+        // Per-hospital performance.
+        List<Hospital> hospitals = hospitalRepository.findAllByDeletedFalse();
+        List<HospitalPerformance> perf = new ArrayList<>();
+        for (Hospital h : hospitals) {
+            HospitalPerformance p = new HospitalPerformance();
+            p.setHospitalId(h.getHospitalId());
+            p.setHospitalName(h.getHospitalName());
+            p.setCity(h.getCity());
+            p.setTotalAppointments(appointmentRepository.countByHospital_HospitalId(h.getHospitalId()));
+            p.setCompletedAppointments(
+                    appointmentRepository.countByHospital_HospitalIdAndStatus(h.getHospitalId(), AppointmentStatus.COMPLETED));
+            p.setDoctorCount(doctorRepository.countByHospital_HospitalIdAndDeletedFalse(h.getHospitalId()));
+            perf.add(p);
+        }
+
+        dto.setTopHospitalsByAppointments(perf.stream()
+                .sorted(Comparator.comparingLong(HospitalPerformance::getTotalAppointments).reversed())
+                .limit(5).collect(Collectors.toList()));
+        dto.setTopHospitalsByCompleted(perf.stream()
+                .sorted(Comparator.comparingLong(HospitalPerformance::getCompletedAppointments).reversed())
+                .limit(5).collect(Collectors.toList()));
+
+        List<LocalDateTime> apptTimes = appointmentRepository.findAll()
+                .stream().map(Appointment::getCreatedAt).collect(Collectors.toList());
+        dto.setAppointmentsTrend(MetricsUtil.monthlyCounts(apptTimes, 6));
+
+        List<LocalDateTime> hospTimes = hospitals.stream().map(Hospital::getCreatedAt).collect(Collectors.toList());
+        dto.setHospitalTrend(MetricsUtil.monthlyCounts(hospTimes, 6));
+
         return dto;
+    }
+
+    private Hospital requireHospital(Long hospitalId) {
+        return hospitalRepository.findByHospitalIdAndDeletedFalse(hospitalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Hospital not found with id " + hospitalId));
     }
 
     private HospitalResponse toHospitalResponse(Hospital h) {

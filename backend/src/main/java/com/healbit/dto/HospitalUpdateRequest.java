@@ -18,6 +18,8 @@ public class HospitalUpdateRequest {
 
     private String description;
 
+    private String image;
+
     public String getHospitalName() { return hospitalName; }
     public void setHospitalName(String hospitalName) { this.hospitalName = hospitalName; }
 
@@ -38,4 +40,7 @@ public class HospitalUpdateRequest {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getImage() { return image; }
+    public void setImage(String image) { this.image = image; }
 }

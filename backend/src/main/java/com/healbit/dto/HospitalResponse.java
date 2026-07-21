@@ -15,6 +15,7 @@ public class HospitalResponse {
     private String state;
     private String pincode;
     private String description;
+    private String imageUrl;
     private HospitalStatus status;
     private LocalDateTime createdAt;
 
@@ -47,6 +48,9 @@ public class HospitalResponse {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
     public HospitalStatus getStatus() { return status; }
     public void setStatus(HospitalStatus status) { this.status = status; }

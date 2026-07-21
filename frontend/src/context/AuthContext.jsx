@@ -79,6 +79,8 @@ export function roleHome(role) {
       return "/patient";
     case "HOSPITAL":
       return "/hospital";
+    case "DOCTOR":
+      return "/doctor";
     case "ADMIN":
       return "/admin";
     default:

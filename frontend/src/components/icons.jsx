@@ -1,4 +1,4 @@
-// Small line-icon set (stroke = currentColor) used across the dashboards.
+// Small line-icon set (stroke = currentColor) used across the app.
 const paths = {
   calendar: (
     <>
@@ -20,6 +20,14 @@ const paths = {
     <>
       <circle cx="12" cy="8" r="3.5" />
       <path d="M5 20c0-3.6 3.1-5.5 7-5.5s7 1.9 7 5.5" />
+    </>
+  ),
+  users: (
+    <>
+      <circle cx="9" cy="8" r="3" />
+      <path d="M2.5 20c0-3.3 2.9-5 6.5-5s6.5 1.7 6.5 5" />
+      <path d="M16 5.2a3 3 0 0 1 0 5.6" />
+      <path d="M17.5 14.4c2.3.5 4 1.9 4 3.6" />
     </>
   ),
   hospital: (
@@ -44,6 +52,49 @@ const paths = {
       <rect x="7" y="12" width="3" height="5" />
       <rect x="12" y="8" width="3" height="9" />
       <rect x="17" y="14" width="3" height="3" />
+    </>
+  ),
+  stethoscope: (
+    <>
+      <path d="M6 3v5a4 4 0 0 0 8 0V3" />
+      <path d="M6 3H4.5" />
+      <path d="M14 3h1.5" />
+      <path d="M10 16v1a4 4 0 0 0 8 0v-2" />
+      <circle cx="18" cy="12" r="2.2" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </>
+  ),
+  pin: (
+    <>
+      <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </>
+  ),
+  grid: (
+    <>
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
+    </>
+  ),
+  logout: (
+    <>
+      <path d="M15 4h3a1.5 1.5 0 0 1 1.5 1.5v13A1.5 1.5 0 0 1 18 20h-3" />
+      <path d="M10 12H3.5" />
+      <path d="M7 8.5 3.5 12 7 15.5" />
+    </>
+  ),
+  menu: (
+    <>
+      <path d="M4 7h16" />
+      <path d="M4 12h16" />
+      <path d="M4 17h16" />
     </>
   ),
 };

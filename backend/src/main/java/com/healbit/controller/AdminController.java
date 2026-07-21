@@ -21,8 +21,9 @@ public class AdminController {
     }
 
     @GetMapping("/hospitals")
-    public ResponseEntity<List<HospitalResponse>> getAllHospitals() {
-        return ResponseEntity.ok(adminService.getAllHospitals());
+    public ResponseEntity<List<HospitalResponse>> getAllHospitals(
+            @RequestParam(required = false, defaultValue = "all") String filter) {
+        return ResponseEntity.ok(adminService.getHospitals(filter));
     }
 
     @PutMapping("/approve/{id}")

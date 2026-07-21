@@ -1,28 +1,51 @@
 package com.healbit.service;
 
+import com.healbit.dto.DoctorAvailabilityRequest;
 import com.healbit.dto.DoctorRequest;
 import com.healbit.dto.DoctorResponse;
+import com.healbit.entity.Appointment;
+import com.healbit.entity.AppointmentStatus;
 import com.healbit.entity.Doctor;
 import com.healbit.entity.Hospital;
+import com.healbit.exception.DuplicateResourceException;
 import com.healbit.exception.ResourceNotFoundException;
 import com.healbit.exception.UnauthorizedException;
+import com.healbit.repository.AppointmentRepository;
 import com.healbit.repository.DoctorRepository;
 import com.healbit.repository.HospitalRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.stream.Collectors;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @Transactional
 @Service
 public class DoctorService {
 
+    private static final Set<AppointmentStatus> LIVE =
+            Set.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED);
+
     private final DoctorRepository doctorRepository;
     private final HospitalRepository hospitalRepository;
+    private final AppointmentRepository appointmentRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public DoctorService(DoctorRepository doctorRepository, HospitalRepository hospitalRepository) {
+    public DoctorService(DoctorRepository doctorRepository,
+                         HospitalRepository hospitalRepository,
+                         AppointmentRepository appointmentRepository,
+                         PasswordEncoder passwordEncoder) {
         this.doctorRepository = doctorRepository;
         this.hospitalRepository = hospitalRepository;
+        this.appointmentRepository = appointmentRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /** Browse doctors. If hospitalId is provided, list that hospital's doctors; otherwise list all. */
@@ -39,13 +62,31 @@ public class DoctorService {
                 .stream().map(this::toResponse).collect(Collectors.toList());
     }
 
+    public DoctorResponse getDoctor(Long doctorId) {
+        return toResponse(findDoctor(doctorId));
+    }
+
+    // ---------------- Hospital-managed CRUD ----------------
+
     public DoctorResponse addDoctor(Long hospitalId, DoctorRequest request) {
         Hospital hospital = hospitalRepository.findByHospitalIdAndDeletedFalse(hospitalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Hospital not found with id " + hospitalId));
 
+        if (!StringUtils.hasText(request.getEmail())) {
+            throw new IllegalArgumentException("Doctor email is required");
+        }
+        if (!StringUtils.hasText(request.getPassword())) {
+            throw new IllegalArgumentException("An initial password is required for the doctor's login");
+        }
+        if (doctorRepository.existsByEmail(request.getEmail())) {
+            throw new DuplicateResourceException("A doctor with this email already exists");
+        }
+
         Doctor doctor = new Doctor();
         doctor.setHospital(hospital);
-        applyRequest(doctor, request);
+        doctor.setEmail(request.getEmail());
+        doctor.setPassword(passwordEncoder.encode(request.getPassword()));
+        applyProfile(doctor, request);
 
         return toResponse(doctorRepository.save(doctor));
     }
@@ -54,21 +95,84 @@ public class DoctorService {
         if (request.getDoctorId() == null) {
             throw new IllegalArgumentException("doctorId is required to update a doctor");
         }
-        Doctor doctor = doctorRepository.findByDoctorIdAndDeletedFalse(request.getDoctorId())
-                .orElseThrow(() -> new ResourceNotFoundException("Doctor not found with id " + request.getDoctorId()));
-
+        Doctor doctor = findDoctor(request.getDoctorId());
         ensureOwnership(doctor, hospitalId);
-        applyRequest(doctor, request);
+
+        // Email change (kept unique). Password change is optional on update.
+        if (StringUtils.hasText(request.getEmail()) && !request.getEmail().equalsIgnoreCase(doctor.getEmail())) {
+            if (doctorRepository.existsByEmail(request.getEmail())) {
+                throw new DuplicateResourceException("A doctor with this email already exists");
+            }
+            doctor.setEmail(request.getEmail());
+        }
+        if (StringUtils.hasText(request.getPassword())) {
+            doctor.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+        applyProfile(doctor, request);
 
         return toResponse(doctorRepository.save(doctor));
     }
 
     public void deleteDoctor(Long hospitalId, Long doctorId) {
-        Doctor doctor = doctorRepository.findByDoctorIdAndDeletedFalse(doctorId)
-                .orElseThrow(() -> new ResourceNotFoundException("Doctor not found with id " + doctorId));
+        Doctor doctor = findDoctor(doctorId);
         ensureOwnership(doctor, hospitalId);
         doctor.setDeleted(true);
         doctorRepository.save(doctor);
+    }
+
+    // ---------------- Doctor self-service ----------------
+
+    public DoctorResponse getOwnProfile(Long doctorId) {
+        return toResponse(findDoctor(doctorId));
+    }
+
+    public DoctorResponse updateOwnSchedule(Long doctorId, DoctorAvailabilityRequest request) {
+        Doctor doctor = findDoctor(doctorId);
+        if (request.getWorkingDays() != null) {
+            doctor.setWorkingDays(ScheduleUtil.toWorkingDaysCsv(request.getWorkingDays()));
+        }
+        if (request.getStartTime() != null) doctor.setStartTime(request.getStartTime());
+        if (request.getEndTime() != null) doctor.setEndTime(request.getEndTime());
+        if (doctor.getStartTime() != null && doctor.getEndTime() != null
+                && !doctor.getStartTime().isBefore(doctor.getEndTime())) {
+            throw new IllegalArgumentException("Start time must be before end time");
+        }
+        if (request.getConsultationFee() != null) doctor.setConsultationFee(request.getConsultationFee());
+        return toResponse(doctorRepository.save(doctor));
+    }
+
+    // ---------------- Slots ----------------
+
+    /** Free 30-minute slot start times ("HH:mm") for a doctor on a given date. */
+    public List<String> getAvailableSlots(Long doctorId, LocalDate date) {
+        Doctor doctor = findDoctor(doctorId);
+        List<String> out = new ArrayList<>();
+        if (date == null || date.isBefore(LocalDate.now()) || !ScheduleUtil.scheduleConfigured(doctor)) {
+            return out;
+        }
+        Set<DayOfWeek> days = ScheduleUtil.parseWorkingDays(doctor.getWorkingDays());
+        if (!days.contains(date.getDayOfWeek())) return out;
+
+        Set<LocalTime> taken = appointmentRepository
+                .findByDoctor_DoctorIdAndAppointmentDateAndStatusIn(doctorId, date, LIVE)
+                .stream().map(Appointment::getAppointmentTime).collect(Collectors.toSet());
+
+        boolean isToday = date.equals(LocalDate.now());
+        LocalTime now = LocalTime.now();
+
+        for (LocalTime slot : ScheduleUtil.generateSlots(doctor.getStartTime(), doctor.getEndTime())) {
+            if (taken.contains(slot)) continue;
+            if (isToday && !slot.isAfter(now)) continue;
+            out.add(slot.toString().length() == 5 ? slot.toString() : String.format("%02d:%02d", slot.getHour(), slot.getMinute()));
+        }
+        return out;
+    }
+
+    // ---------------- Helpers ----------------
+
+    private Doctor findDoctor(Long doctorId) {
+        return doctorRepository.findByDoctorIdAndDeletedFalse(doctorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Doctor not found with id " + doctorId));
     }
 
     private void ensureOwnership(Doctor doctor, Long hospitalId) {
@@ -77,28 +181,69 @@ public class DoctorService {
         }
     }
 
-    private void applyRequest(Doctor doctor, DoctorRequest request) {
+    private void applyProfile(Doctor doctor, DoctorRequest request) {
         doctor.setDoctorName(request.getDoctorName());
         doctor.setQualification(request.getQualification());
         doctor.setSpecialization(request.getSpecialization());
         doctor.setExperience(request.getExperience());
         doctor.setConsultationFee(request.getConsultationFee());
-        doctor.setAvailableDays(request.getAvailableDays());
-        doctor.setAvailableTime(request.getAvailableTime());
+        if (request.getWorkingDays() != null) {
+            doctor.setWorkingDays(ScheduleUtil.toWorkingDaysCsv(request.getWorkingDays()));
+        }
+        if (request.getStartTime() != null) doctor.setStartTime(request.getStartTime());
+        if (request.getEndTime() != null) doctor.setEndTime(request.getEndTime());
+        if (doctor.getStartTime() != null && doctor.getEndTime() != null
+                && !doctor.getStartTime().isBefore(doctor.getEndTime())) {
+            throw new IllegalArgumentException("Start time must be before end time");
+        }
+    }
+
+    /** Availability = schedule configured AND at least one free slot within the next 7 days. */
+    private boolean computeAvailable(Doctor doctor) {
+        if (!ScheduleUtil.scheduleConfigured(doctor)) return false;
+        Set<DayOfWeek> days = ScheduleUtil.parseWorkingDays(doctor.getWorkingDays());
+        if (days.isEmpty()) return false;
+
+        LocalDate today = LocalDate.now();
+        List<Appointment> upcoming = appointmentRepository
+                .findByDoctor_DoctorIdAndAppointmentDateGreaterThanEqualAndStatusIn(doctor.getDoctorId(), today, LIVE);
+        List<LocalTime> slots = ScheduleUtil.generateSlots(doctor.getStartTime(), doctor.getEndTime());
+        if (slots.isEmpty()) return false;
+        LocalTime now = LocalTime.now();
+
+        for (int i = 0; i < 7; i++) {
+            LocalDate date = today.plusDays(i);
+            if (!days.contains(date.getDayOfWeek())) continue;
+            final LocalDate d = date;
+            Set<LocalTime> taken = upcoming.stream()
+                    .filter(a -> a.getAppointmentDate().equals(d))
+                    .map(Appointment::getAppointmentTime)
+                    .collect(Collectors.toSet());
+            for (LocalTime slot : slots) {
+                if (taken.contains(slot)) continue;
+                if (i == 0 && !slot.isAfter(now)) continue;
+                return true;
+            }
+        }
+        return false;
     }
 
     private DoctorResponse toResponse(Doctor doctor) {
-        DoctorResponse response = new DoctorResponse();
-        response.setDoctorId(doctor.getDoctorId());
-        response.setHospitalId(doctor.getHospital().getHospitalId());
-        response.setHospitalName(doctor.getHospital().getHospitalName());
-        response.setDoctorName(doctor.getDoctorName());
-        response.setQualification(doctor.getQualification());
-        response.setSpecialization(doctor.getSpecialization());
-        response.setExperience(doctor.getExperience());
-        response.setConsultationFee(doctor.getConsultationFee());
-        response.setAvailableDays(doctor.getAvailableDays());
-        response.setAvailableTime(doctor.getAvailableTime());
-        return response;
+        DoctorResponse r = new DoctorResponse();
+        r.setDoctorId(doctor.getDoctorId());
+        r.setHospitalId(doctor.getHospital().getHospitalId());
+        r.setHospitalName(doctor.getHospital().getHospitalName());
+        r.setHospitalCity(doctor.getHospital().getCity());
+        r.setDoctorName(doctor.getDoctorName());
+        r.setEmail(doctor.getEmail());
+        r.setQualification(doctor.getQualification());
+        r.setSpecialization(doctor.getSpecialization());
+        r.setExperience(doctor.getExperience());
+        r.setConsultationFee(doctor.getConsultationFee());
+        r.setWorkingDays(ScheduleUtil.workingDaysList(doctor.getWorkingDays()));
+        r.setStartTime(doctor.getStartTime());
+        r.setEndTime(doctor.getEndTime());
+        r.setAvailable(computeAvailable(doctor));
+        return r;
     }
 }

@@ -37,6 +37,11 @@ public class AuthController {
         return ResponseEntity.ok(authenticationService.loginHospital(request));
     }
 
+    @PostMapping("/doctor/login")
+    public ResponseEntity<LoginResponse> loginDoctor(@Valid @RequestBody DoctorLoginRequest request) {
+        return ResponseEntity.ok(authenticationService.loginDoctor(request));
+    }
+
     @PostMapping("/admin/login")
     public ResponseEntity<LoginResponse> loginAdmin(@Valid @RequestBody AdminLoginRequest request) {
         return ResponseEntity.ok(authenticationService.loginAdmin(request));

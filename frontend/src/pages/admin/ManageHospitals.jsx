@@ -3,15 +3,25 @@ import { getAllHospitals, approveHospital, rejectHospital, removeHospital } from
 import { getErrorMessage } from "../../utils/error";
 import StatusBadge from "../../components/StatusBadge";
 
+const FILTERS = [
+  { key: "all", label: "All" },
+  { key: "recent", label: "Recent" },
+  { key: "new", label: "Newly registered" },
+  { key: "pending", label: "Pending" },
+  { key: "active", label: "Active" },
+  { key: "rejected", label: "Rejected" },
+];
+
 export default function ManageHospitals() {
   const [hospitals, setHospitals] = useState([]);
+  const [filter, setFilter] = useState("all");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const load = async () => {
+  const load = async (f = filter) => {
     setLoading(true);
     try {
-      const { data } = await getAllHospitals();
+      const { data } = await getAllHospitals(f);
       setHospitals(data);
     } catch (err) {
       setError(getErrorMessage(err));
@@ -20,13 +30,13 @@ export default function ManageHospitals() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(filter); /* eslint-disable-next-line */ }, [filter]);
 
   const run = async (fn, id, confirmMsg) => {
     if (confirmMsg && !window.confirm(confirmMsg)) return;
     try {
       await fn(id);
-      load();
+      load(filter);
     } catch (err) {
       setError(getErrorMessage(err));
     }
@@ -42,16 +52,24 @@ export default function ManageHospitals() {
         </div>
       </div>
 
+      <div className="filter-row">
+        {FILTERS.map((f) => (
+          <button key={f.key} className={`chip-btn${filter === f.key ? " active" : ""}`} onClick={() => setFilter(f.key)}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       {error && <div className="alert alert-error">{error}</div>}
       {loading ? (
-        <p className="muted">Loading...</p>
+        <p className="muted">Loading…</p>
       ) : hospitals.length === 0 ? (
-        <div className="card empty">No hospitals registered yet.</div>
+        <div className="card empty">No hospitals in this view.</div>
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>Name</th><th>Reg. no.</th><th>Email</th><th>City</th><th>Status</th><th>Actions</th></tr>
+              <tr><th>Name</th><th>Reg. no.</th><th>Email</th><th>City</th><th>Registered</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {hospitals.map((h) => (
@@ -60,6 +78,7 @@ export default function ManageHospitals() {
                   <td>{h.registrationNumber}</td>
                   <td>{h.email}</td>
                   <td>{h.city || "—"}</td>
+                  <td>{h.createdAt ? new Date(h.createdAt).toLocaleDateString() : "—"}</td>
                   <td><StatusBadge status={h.status} /></td>
                   <td>
                     <div className="actions">

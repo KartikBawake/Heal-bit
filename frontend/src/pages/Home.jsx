@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import Icon from "../components/icons";
 import Modal from "../components/Modal";
 import Footer from "../components/Footer";
@@ -10,13 +10,50 @@ const CONTACT = {
   hours: "Mon–Sat, 9:00–18:00 IST",
 };
 
+const ROLES = [
+  {
+    icon: "user", title: "For patients",
+    copy: "Find hospitals, view doctors, and book 30-minute appointment slots.",
+    actions: [
+      { to: "/patient/login", label: "Sign in", primary: true },
+      { to: "/patient/register", label: "Create account", primary: false },
+    ],
+  },
+  {
+    icon: "stethoscope", title: "For doctors",
+    copy: "Set your weekly schedule and confirm or complete your appointments.",
+    actions: [{ to: "/doctor/login", label: "Sign in", primary: true }],
+  },
+  {
+    icon: "hospital", title: "For hospitals",
+    copy: "Register, add or remove doctors, and track activity with live insights.",
+    actions: [
+      { to: "/hospital/login", label: "Sign in", primary: true },
+      { to: "/hospital/register", label: "Register", primary: false },
+    ],
+  },
+  {
+    icon: "chart", title: "For administrators",
+    copy: "Approve hospitals, oversee patients, and monitor the whole platform.",
+    actions: [{ to: "/admin/login", label: "Sign in", primary: true }],
+  },
+];
+
 export default function Home() {
-  const [modal, setModal] = useState(null); // "about" | "contact" | null
+  const [modal, setModal] = useState(null);
   const close = () => setModal(null);
+  const location = useLocation();
+
+  // When arriving from the navbar "Sign in" on another page, scroll to the role chooser.
+  useEffect(() => {
+    if (location.state?.scrollTo === "roles") {
+      setTimeout(() => document.getElementById("roles")?.scrollIntoView({ behavior: "smooth" }), 60);
+    }
+  }, [location]);
 
   return (
     <div className="home">
-      {/* ---------------- HERO ---------------- */}
+      {/* HERO */}
       <section className="hero2">
         <div className="hero2-copy fade-up">
           <p className="eyebrow">Unified healthcare system</p>
@@ -24,12 +61,11 @@ export default function Home() {
             Care, <span className="accent-word">coordinated</span> in one place.
           </h1>
           <p className="lead">
-            Heal-Bit brings patients and hospitals onto a single platform —
-            browse hospitals, book appointments, and manage care without the back-and-forth.
+            Heal-Bit brings patients, doctors, and hospitals onto a single platform —
+            browse hospitals, book real appointment slots, and manage care without the back-and-forth.
           </p>
           <div className="hero2-cta">
             <Link to="/patient/register" className="btn btn-primary btn-lg">Get started</Link>
-            <Link to="/patient/login" className="btn btn-outline btn-lg">Sign in</Link>
           </div>
           <div className="hero2-links">
             <button className="link-btn" onClick={() => setModal("about")}>About Heal-Bit</button>
@@ -59,43 +95,32 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ---------------- ROLE CARDS ---------------- */}
-      <section className="section">
+      {/* ROLES — the single sign-in surface, one entry per role */}
+      <section className="section" id="roles">
         <div className="section-head">
           <h2>Choose your space</h2>
-          <p className="muted">Three tailored experiences, one platform.</p>
+          <p className="muted">Four tailored experiences, one platform. Pick how you’re signing in.</p>
         </div>
-        <div className="role-grid">
-          <div className="role-card">
-            <span className="role-icon"><Icon name="user" size={24} /></span>
-            <h3>For patients</h3>
-            <p>Find hospitals, view doctors, and book appointments in a few taps.</p>
-            <div className="links">
-              <Link to="/patient/login" className="btn btn-primary btn-sm">Sign in</Link>
-              <Link to="/patient/register" className="btn btn-outline btn-sm">Create account</Link>
+        <div className="role-grid four">
+          {ROLES.map((r) => (
+            <div className="role-card" key={r.title}>
+              <span className="role-icon"><Icon name={r.icon} size={24} /></span>
+              <h3>{r.title}</h3>
+              <p>{r.copy}</p>
+              {r.note && <p className="role-note">{r.note}</p>}
+              <div className="links">
+                {r.actions.map((a) => (
+                  <Link key={a.to} to={a.to} className={`btn btn-sm ${a.primary ? "btn-primary" : "btn-outline"}`}>
+                    {a.label}
+                  </Link>
+                ))}
+              </div>
             </div>
-          </div>
-          <div className="role-card">
-            <span className="role-icon"><Icon name="hospital" size={24} /></span>
-            <h3>For hospitals</h3>
-            <p>Register, manage your doctors, and respond to appointment requests.</p>
-            <div className="links">
-              <Link to="/hospital/login" className="btn btn-primary btn-sm">Sign in</Link>
-              <Link to="/hospital/register" className="btn btn-outline btn-sm">Register</Link>
-            </div>
-          </div>
-          <div className="role-card">
-            <span className="role-icon"><Icon name="chart" size={24} /></span>
-            <h3>For administrators</h3>
-            <p>Approve hospitals, oversee users, and monitor platform activity.</p>
-            <div className="links">
-              <Link to="/admin/login" className="btn btn-primary btn-sm">Sign in</Link>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
-      {/* ---------------- HOW IT WORKS ---------------- */}
+      {/* HOW IT WORKS */}
       <section className="section">
         <div className="section-head">
           <h2>How it works</h2>
@@ -109,34 +134,29 @@ export default function Home() {
           </div>
           <div className="step">
             <span className="step-no">02</span>
-            <h3>Find a hospital &amp; doctor</h3>
-            <p className="muted">Search by city, compare specialists, and check availability.</p>
+            <h3>Find a doctor &amp; slot</h3>
+            <p className="muted">Search by city or pincode, then pick an open 30-minute slot.</p>
           </div>
           <div className="step">
             <span className="step-no">03</span>
-            <h3>Book and manage</h3>
-            <p className="muted">Request an appointment and track its status end to end.</p>
+            <h3>Book and track</h3>
+            <p className="muted">Your doctor confirms the request and you track it end to end.</p>
           </div>
         </div>
       </section>
 
       <Footer onAbout={() => setModal("about")} onContact={() => setModal("contact")} />
 
-      {/* ---------------- MODALS ---------------- */}
       <Modal open={modal === "about"} onClose={close} title="About Heal-Bit">
         <p>
           Heal-Bit is a unified healthcare platform built to remove the friction between people and care.
-          Patients discover hospitals and book appointments in one place, hospitals manage their doctors and
-          requests without spreadsheets, and administrators keep the whole network trustworthy.
-        </p>
-        <p className="mt-2">
-          Our aim is simple: make finding and receiving care feel calm, clear, and quick — for everyone
-          on either side of the appointment.
+          Patients discover hospitals and book appointments in one place, doctors manage their own schedules
+          and requests, hospitals oversee their teams, and administrators keep the network trustworthy.
         </p>
         <ul className="about-list">
           <li><Icon name="user" size={18} /> Patient-first booking and appointment history</li>
+          <li><Icon name="stethoscope" size={18} /> Doctors with their own schedules and logins</li>
           <li><Icon name="hospital" size={18} /> Verified hospitals, approved by administrators</li>
-          <li><Icon name="care" size={18} /> Doctors, specialities, and availability at a glance</li>
         </ul>
       </Modal>
 

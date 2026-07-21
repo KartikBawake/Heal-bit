@@ -1,5 +1,7 @@
 package com.healbit.dto;
 
+import java.util.List;
+
 public class AdminDashboardResponse {
 
     private long totalPatients;
@@ -12,7 +14,17 @@ public class AdminDashboardResponse {
     private long pendingAppointments;
     private long confirmedAppointments;
     private long completedAppointments;
+    private long rejectedAppointments;
     private long cancelledAppointments;
+
+    // Highest-appointment hospitals (by total booked appointments).
+    private List<HospitalPerformance> topHospitalsByAppointments;
+    // Best-performing hospitals (by completed appointments).
+    private List<HospitalPerformance> topHospitalsByCompleted;
+    // Appointments booked per month (last 6 months).
+    private List<MonthCount> appointmentsTrend;
+    // Hospital registrations per month (last 6 months).
+    private List<MonthCount> hospitalTrend;
 
     public long getTotalPatients() { return totalPatients; }
     public void setTotalPatients(long totalPatients) { this.totalPatients = totalPatients; }
@@ -44,6 +56,21 @@ public class AdminDashboardResponse {
     public long getCompletedAppointments() { return completedAppointments; }
     public void setCompletedAppointments(long completedAppointments) { this.completedAppointments = completedAppointments; }
 
+    public long getRejectedAppointments() { return rejectedAppointments; }
+    public void setRejectedAppointments(long rejectedAppointments) { this.rejectedAppointments = rejectedAppointments; }
+
     public long getCancelledAppointments() { return cancelledAppointments; }
     public void setCancelledAppointments(long cancelledAppointments) { this.cancelledAppointments = cancelledAppointments; }
+
+    public List<HospitalPerformance> getTopHospitalsByAppointments() { return topHospitalsByAppointments; }
+    public void setTopHospitalsByAppointments(List<HospitalPerformance> v) { this.topHospitalsByAppointments = v; }
+
+    public List<HospitalPerformance> getTopHospitalsByCompleted() { return topHospitalsByCompleted; }
+    public void setTopHospitalsByCompleted(List<HospitalPerformance> v) { this.topHospitalsByCompleted = v; }
+
+    public List<MonthCount> getAppointmentsTrend() { return appointmentsTrend; }
+    public void setAppointmentsTrend(List<MonthCount> v) { this.appointmentsTrend = v; }
+
+    public List<MonthCount> getHospitalTrend() { return hospitalTrend; }
+    public void setHospitalTrend(List<MonthCount> v) { this.hospitalTrend = v; }
 }

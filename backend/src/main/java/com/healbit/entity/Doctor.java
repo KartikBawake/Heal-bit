@@ -1,6 +1,7 @@
 package com.healbit.entity;
 
 import jakarta.persistence.*;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,6 +20,12 @@ public class Doctor {
     @Column(nullable = false)
     private String doctorName;
 
+    // Doctors log in with their own credentials, provisioned by the hospital.
+    @Column(unique = true)
+    private String email;
+
+    private String password;
+
     private String qualification;
 
     private String specialization;
@@ -27,9 +34,14 @@ public class Doctor {
 
     private Double consultationFee;
 
-    private String availableDays;
+    // Structured weekly availability.
+    // workingDays: comma-separated day tokens, e.g. "MON,TUE,WED,THU,FRI"
+    @Column(length = 40)
+    private String workingDays;
 
-    private String availableTime;
+    private LocalTime startTime;
+
+    private LocalTime endTime;
 
     @Column(nullable = false)
     private boolean deleted = false;
@@ -46,6 +58,12 @@ public class Doctor {
     public String getDoctorName() { return doctorName; }
     public void setDoctorName(String doctorName) { this.doctorName = doctorName; }
 
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+
     public String getQualification() { return qualification; }
     public void setQualification(String qualification) { this.qualification = qualification; }
 
@@ -58,11 +76,14 @@ public class Doctor {
     public Double getConsultationFee() { return consultationFee; }
     public void setConsultationFee(Double consultationFee) { this.consultationFee = consultationFee; }
 
-    public String getAvailableDays() { return availableDays; }
-    public void setAvailableDays(String availableDays) { this.availableDays = availableDays; }
+    public String getWorkingDays() { return workingDays; }
+    public void setWorkingDays(String workingDays) { this.workingDays = workingDays; }
 
-    public String getAvailableTime() { return availableTime; }
-    public void setAvailableTime(String availableTime) { this.availableTime = availableTime; }
+    public LocalTime getStartTime() { return startTime; }
+    public void setStartTime(LocalTime startTime) { this.startTime = startTime; }
+
+    public LocalTime getEndTime() { return endTime; }
+    public void setEndTime(LocalTime endTime) { this.endTime = endTime; }
 
     public boolean isDeleted() { return deleted; }
     public void setDeleted(boolean deleted) { this.deleted = deleted; }

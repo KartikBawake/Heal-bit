@@ -1,65 +1,89 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
-import { listDoctors } from "../../api/doctorApi";
-import { listAppointments } from "../../api/appointmentApi";
+import { getHospitalDashboard } from "../../api/hospitalApi";
+import { getErrorMessage } from "../../utils/error";
 import Icon from "../../components/icons";
+import { TrendArea, CategoryBar, StatusDonut } from "../../components/Charts";
+import { STATUS_COLORS, CHART } from "../../constants";
+
+const Kpi = ({ icon, value, label, tone }) => (
+  <div className={`kpi${tone ? " kpi-" + tone : ""}`}>
+    <span className="kpi-icon"><Icon name={icon} size={20} /></span>
+    <div>
+      <div className="kpi-value">{value ?? 0}</div>
+      <div className="kpi-label">{label}</div>
+    </div>
+  </div>
+);
 
 export default function HospitalDashboard() {
-  const { auth } = useAuth();
-  const [doctorCount, setDoctorCount] = useState(null);
-  const [pendingCount, setPendingCount] = useState(null);
+  const [d, setD] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    listDoctors({ mine: true }).then(({ data }) => setDoctorCount(data.length)).catch(() => setDoctorCount(0));
-    listAppointments()
-      .then(({ data }) => setPendingCount(data.filter((a) => a.status === "PENDING").length))
-      .catch(() => setPendingCount(0));
+    getHospitalDashboard().then(({ data }) => setD(data)).catch((e) => setError(getErrorMessage(e)));
   }, []);
+
+  if (error) return <div className="alert alert-error">{error}</div>;
+  if (!d) return <p className="muted">Loading…</p>;
+
+  const statusData = [
+    { name: "Pending", value: d.pendingAppointments, color: STATUS_COLORS.PENDING },
+    { name: "Confirmed", value: d.confirmedAppointments, color: STATUS_COLORS.CONFIRMED },
+    { name: "Completed", value: d.completedAppointments, color: STATUS_COLORS.COMPLETED },
+    { name: "Rejected", value: d.rejectedAppointments, color: STATUS_COLORS.REJECTED },
+    { name: "Cancelled", value: d.cancelledAppointments, color: STATUS_COLORS.CANCELLED },
+  ];
+
+  const loads = (d.doctorLoads || [])
+    .filter((x) => x.total > 0)
+    .slice(0, 8)
+    .map((x) => ({ name: x.doctorName, value: x.total }));
 
   return (
     <div>
       <div className="dash-hero">
         <div>
           <p className="eyebrow">Hospital</p>
-          <h1>{auth.user.name}</h1>
-          <p className="sub">Manage your doctors and appointment requests.</p>
+          <h1>{d.hospitalName}</h1>
+          <p className="sub">Reg. No. <strong>{d.registrationNumber}</strong></p>
         </div>
         <div className="chips">
           <div className="chip">
-            <span className="chip-icon"><Icon name="care" /></span>
-            <span className="chip-meta"><b>{doctorCount ?? "—"}</b><span>doctors</span></span>
+            <span className="chip-icon"><Icon name="stethoscope" /></span>
+            <span className="chip-meta"><b>{d.totalDoctors}</b><span>doctors</span></span>
           </div>
           <div className="chip">
-            <span className="chip-icon"><Icon name="calendar" /></span>
-            <span className="chip-meta"><b>{pendingCount ?? "—"}</b><span>pending requests</span></span>
+            <span className="chip-icon"><Icon name="care" /></span>
+            <span className="chip-meta"><b>{d.availableDoctors}</b><span>available now</span></span>
           </div>
         </div>
       </div>
 
-      <h2 className="mt-3">Quick actions</h2>
-      <div className="tiles mt-2">
-        <Link to="/hospital/doctors" className="tile">
-          <span className="tile-icon"><Icon name="care" /></span>
-          <div className="tile-body">
-            <h3>Manage doctors</h3>
-            <p>Add, edit, or remove the doctors at your hospital.</p>
-          </div>
-        </Link>
-        <Link to="/hospital/appointments" className="tile">
-          <span className="tile-icon"><Icon name="clipboard" /></span>
-          <div className="tile-body">
-            <h3>Appointments</h3>
-            <p>Confirm, complete, or reject incoming requests.</p>
-          </div>
-        </Link>
-        <Link to="/hospital/profile" className="tile">
-          <span className="tile-icon"><Icon name="hospital" /></span>
-          <div className="tile-body">
-            <h3>Hospital profile</h3>
-            <p>Update your details and contact information.</p>
-          </div>
-        </Link>
+      <div className="kpi-grid">
+        <Kpi icon="calendar" value={d.totalAppointments} label="Appointments" tone="primary" />
+        <Kpi icon="clock" value={d.pendingAppointments} label="Pending" tone="amber" />
+        <Kpi icon="care" value={d.confirmedAppointments} label="Confirmed" tone="teal" />
+        <Kpi icon="clipboard" value={d.completedAppointments} label="Completed" tone="blue" />
+      </div>
+
+      <div className="chart-grid mt-3">
+        <div className="card chart-card span-2">
+          <h3>Appointments over time</h3>
+          <TrendArea data={d.appointmentsTrend} color={CHART.primary} />
+        </div>
+        <div className="card chart-card">
+          <h3>By status</h3>
+          <StatusDonut data={statusData} />
+        </div>
+      </div>
+
+      <div className="card chart-card mt-3">
+        <h3>Appointments per doctor</h3>
+        {loads.length === 0 ? (
+          <p className="muted">No appointments booked yet.</p>
+        ) : (
+          <CategoryBar data={loads} xKey="name" yKey="value" color={CHART.teal} />
+        )}
       </div>
     </div>
   );

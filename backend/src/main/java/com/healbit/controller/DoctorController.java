@@ -1,16 +1,17 @@
 package com.healbit.controller;
 
 import com.healbit.config.UserPrincipal;
-import com.healbit.dto.ApiResponse;
-import com.healbit.dto.DoctorRequest;
-import com.healbit.dto.DoctorResponse;
+import com.healbit.dto.*;
+import com.healbit.service.DoctorDashboardService;
 import com.healbit.service.DoctorService;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -18,9 +19,11 @@ import java.util.List;
 public class DoctorController {
 
     private final DoctorService doctorService;
+    private final DoctorDashboardService doctorDashboardService;
 
-    public DoctorController(DoctorService doctorService) {
+    public DoctorController(DoctorService doctorService, DoctorDashboardService doctorDashboardService) {
         this.doctorService = doctorService;
+        this.doctorDashboardService = doctorDashboardService;
     }
 
     /**
@@ -38,7 +41,40 @@ public class DoctorController {
         return ResponseEntity.ok(doctorService.listDoctors(hospitalId));
     }
 
-    /** Hospital adds a doctor (assigned to the authenticated hospital). */
+    // ----- Doctor self-service (must be declared before /{id}) -----
+
+    @GetMapping("/me")
+    public ResponseEntity<DoctorResponse> me(@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(doctorService.getOwnProfile(principal.getId()));
+    }
+
+    @PutMapping("/me/schedule")
+    public ResponseEntity<DoctorResponse> updateSchedule(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody DoctorAvailabilityRequest request) {
+        return ResponseEntity.ok(doctorService.updateOwnSchedule(principal.getId(), request));
+    }
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<DoctorDashboardResponse> dashboard(@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(doctorDashboardService.getDashboard(principal.getId()));
+    }
+
+    /** Public: free 30-minute slots for a doctor on a given date (?date=yyyy-MM-dd). */
+    @GetMapping("/{id}/slots")
+    public ResponseEntity<List<String>> slots(
+            @PathVariable Long id,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(doctorService.getAvailableSlots(id, date));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<DoctorResponse> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(doctorService.getDoctor(id));
+    }
+
+    // ----- Hospital-managed CRUD -----
+
     @PostMapping
     public ResponseEntity<DoctorResponse> add(
             @AuthenticationPrincipal UserPrincipal principal,
@@ -46,7 +82,6 @@ public class DoctorController {
         return new ResponseEntity<>(doctorService.addDoctor(principal.getId(), request), HttpStatus.CREATED);
     }
 
-    /** Hospital updates one of its own doctors (doctorId supplied in body). */
     @PutMapping
     public ResponseEntity<DoctorResponse> update(
             @AuthenticationPrincipal UserPrincipal principal,

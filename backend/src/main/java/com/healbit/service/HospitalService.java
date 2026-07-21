@@ -1,6 +1,11 @@
 package com.healbit.service;
 
 import com.healbit.dto.HospitalResponse;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Page;
+import com.healbit.dto.PageResponse;
 import com.healbit.dto.HospitalUpdateRequest;
 import com.healbit.entity.Hospital;
 import com.healbit.entity.HospitalStatus;
@@ -9,8 +14,6 @@ import com.healbit.repository.HospitalRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.List;
-import java.util.stream.Collectors;
 import org.springframework.transaction.annotation.Transactional;
 @Transactional
 @Service
@@ -22,19 +25,34 @@ public class HospitalService {
         this.hospitalRepository = hospitalRepository;
     }
 
-    /** Public browse + optional search by city or name. Only ACTIVE, non-deleted hospitals are visible. */
-    public List<HospitalResponse> browseHospitals(String city, String name) {
-        List<Hospital> hospitals;
-        if (StringUtils.hasText(city)) {
-            hospitals = hospitalRepository
-                    .findByStatusAndDeletedFalseAndCityContainingIgnoreCase(HospitalStatus.ACTIVE, city);
+    /**
+     * Public browse + optional search by city, name, or pincode. Only ACTIVE, non-deleted
+     * hospitals are visible. Server-side paginated (default 10 per page).
+     */
+    public PageResponse<HospitalResponse> browseHospitals(String city, String name, String pincode, int page, int size) {
+        // Normalise: trim so stray spaces don't break matching.
+        city = city == null ? null : city.trim();
+        name = name == null ? null : name.trim();
+        pincode = pincode == null ? null : pincode.trim();
+
+        int pageNumber = Math.max(page, 0);
+        int pageSize = (size <= 0 || size > 100) ? 10 : size;
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by("hospitalName").ascending());
+
+        Page<Hospital> result;
+        if (StringUtils.hasText(pincode)) {
+            result = hospitalRepository
+                    .findByStatusAndDeletedFalseAndPincodeContaining(HospitalStatus.ACTIVE, pincode, pageable);
+        } else if (StringUtils.hasText(city)) {
+            result = hospitalRepository
+                    .findByStatusAndDeletedFalseAndCityContainingIgnoreCase(HospitalStatus.ACTIVE, city, pageable);
         } else if (StringUtils.hasText(name)) {
-            hospitals = hospitalRepository
-                    .findByStatusAndDeletedFalseAndHospitalNameContainingIgnoreCase(HospitalStatus.ACTIVE, name);
+            result = hospitalRepository
+                    .findByStatusAndDeletedFalseAndHospitalNameContainingIgnoreCase(HospitalStatus.ACTIVE, name, pageable);
         } else {
-            hospitals = hospitalRepository.findAllByStatusAndDeletedFalse(HospitalStatus.ACTIVE);
+            result = hospitalRepository.findByStatusAndDeletedFalse(HospitalStatus.ACTIVE, pageable);
         }
-        return hospitals.stream().map(this::toResponse).collect(Collectors.toList());
+        return PageResponse.from(result.map(this::toResponse));
     }
 
     public HospitalResponse getById(Long hospitalId) {
@@ -54,6 +72,9 @@ public class HospitalService {
         if (request.getState() != null) hospital.setState(request.getState());
         if (request.getPincode() != null) hospital.setPincode(request.getPincode());
         if (request.getDescription() != null) hospital.setDescription(request.getDescription());
+        if (request.getImage() != null) {
+            hospital.setImageData(request.getImage().isBlank() ? null : ImageValidator.validateAndClean(request.getImage()));
+        }
 
         return toResponse(hospitalRepository.save(hospital));
     }
@@ -78,6 +99,7 @@ public class HospitalService {
         response.setState(hospital.getState());
         response.setPincode(hospital.getPincode());
         response.setDescription(hospital.getDescription());
+        response.setImageUrl(hospital.getImageData());
         response.setStatus(hospital.getStatus());
         response.setCreatedAt(hospital.getCreatedAt());
         return response;

@@ -1,0 +1,101 @@
+import { useEffect, useMemo, useState } from "react";
+import { listAppointments, updateAppointmentStatus } from "../../api/appointmentApi";
+import { getErrorMessage } from "../../utils/error";
+import StatusBadge from "../../components/StatusBadge";
+
+const FILTERS = ["ALL", "PENDING", "CONFIRMED", "COMPLETED", "REJECTED", "CANCELLED"];
+
+export default function DoctorAppointments() {
+  const [items, setItems] = useState([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("ALL");
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const { data } = await listAppointments();
+      setItems(data);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const setStatus = async (appointmentId, status) => {
+    setError("");
+    try {
+      await updateAppointmentStatus({ appointmentId, status });
+      load();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
+
+  const shown = useMemo(
+    () => (filter === "ALL" ? items : items.filter((a) => a.status === filter)),
+    [items, filter]
+  );
+
+  return (
+    <div>
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Doctor</p>
+          <h1>Appointments</h1>
+        </div>
+      </div>
+
+      <div className="filter-row">
+        {FILTERS.map((f) => (
+          <button key={f} className={`chip-btn${filter === f ? " active" : ""}`} onClick={() => setFilter(f)}>
+            {f.charAt(0) + f.slice(1).toLowerCase()}
+          </button>
+        ))}
+      </div>
+
+      {error && <div className="alert alert-error">{error}</div>}
+      {loading ? (
+        <p className="muted">Loading…</p>
+      ) : shown.length === 0 ? (
+        <div className="card empty">No appointments here.</div>
+      ) : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Patient</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              {shown.map((a) => (
+                <tr key={a.appointmentId}>
+                  <td>{a.patientName}</td>
+                  <td>{a.appointmentDate}</td>
+                  <td>{a.appointmentTime}</td>
+                  <td>{a.reason}</td>
+                  <td><StatusBadge status={a.status} /></td>
+                  <td>
+                    <div className="actions">
+                      {a.status === "PENDING" && (
+                        <>
+                          <button className="btn btn-primary btn-sm" onClick={() => setStatus(a.appointmentId, "CONFIRMED")}>Confirm</button>
+                          <button className="btn btn-danger btn-sm" onClick={() => setStatus(a.appointmentId, "REJECTED")}>Reject</button>
+                        </>
+                      )}
+                      {a.status === "CONFIRMED" && (
+                        <button className="btn btn-outline btn-sm" onClick={() => setStatus(a.appointmentId, "COMPLETED")}>Mark completed</button>
+                      )}
+                      {!["PENDING", "CONFIRMED"].includes(a.status) && <span className="muted">—</span>}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}

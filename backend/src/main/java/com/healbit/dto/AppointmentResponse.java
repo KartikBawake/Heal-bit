@@ -15,6 +15,7 @@ public class AppointmentResponse {
     private String hospitalName;
     private Long doctorId;
     private String doctorName;
+    private String doctorSpecialization;
     private LocalDate appointmentDate;
     private LocalTime appointmentTime;
     private String reason;
@@ -41,6 +42,9 @@ public class AppointmentResponse {
 
     public String getDoctorName() { return doctorName; }
     public void setDoctorName(String doctorName) { this.doctorName = doctorName; }
+
+    public String getDoctorSpecialization() { return doctorSpecialization; }
+    public void setDoctorSpecialization(String doctorSpecialization) { this.doctorSpecialization = doctorSpecialization; }
 
     public LocalDate getAppointmentDate() { return appointmentDate; }
     public void setAppointmentDate(LocalDate appointmentDate) { this.appointmentDate = appointmentDate; }

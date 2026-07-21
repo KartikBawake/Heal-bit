@@ -1,6 +1,10 @@
 package com.healbit.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.*;
+
+import java.time.LocalTime;
+import java.util.List;
 
 public class DoctorRequest {
 
@@ -10,8 +14,15 @@ public class DoctorRequest {
     @NotBlank(message = "Doctor name is required")
     private String doctorName;
 
+    // Credentials are required on create; on update they may be left blank to keep the current ones.
+    @Email(message = "Invalid email format")
+    private String email;
+
+    private String password;
+
     private String qualification;
 
+    @NotBlank(message = "Specialization is required")
     private String specialization;
 
     @NotNull(message = "Experience is required")
@@ -22,16 +33,26 @@ public class DoctorRequest {
     @PositiveOrZero(message = "Consultation fee cannot be negative")
     private Double consultationFee;
 
-    private String availableDays;
+    // e.g. ["MON","TUE","WED"]
+    private List<String> workingDays;
 
-    // Expected format "HH:mm-HH:mm" e.g. "09:00-17:00"
-    private String availableTime;
+    @JsonFormat(pattern = "HH:mm")
+    private LocalTime startTime;
+
+    @JsonFormat(pattern = "HH:mm")
+    private LocalTime endTime;
 
     public Long getDoctorId() { return doctorId; }
     public void setDoctorId(Long doctorId) { this.doctorId = doctorId; }
 
     public String getDoctorName() { return doctorName; }
     public void setDoctorName(String doctorName) { this.doctorName = doctorName; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
 
     public String getQualification() { return qualification; }
     public void setQualification(String qualification) { this.qualification = qualification; }
@@ -45,9 +66,12 @@ public class DoctorRequest {
     public Double getConsultationFee() { return consultationFee; }
     public void setConsultationFee(Double consultationFee) { this.consultationFee = consultationFee; }
 
-    public String getAvailableDays() { return availableDays; }
-    public void setAvailableDays(String availableDays) { this.availableDays = availableDays; }
+    public List<String> getWorkingDays() { return workingDays; }
+    public void setWorkingDays(List<String> workingDays) { this.workingDays = workingDays; }
 
-    public String getAvailableTime() { return availableTime; }
-    public void setAvailableTime(String availableTime) { this.availableTime = availableTime; }
+    public LocalTime getStartTime() { return startTime; }
+    public void setStartTime(LocalTime startTime) { this.startTime = startTime; }
+
+    public LocalTime getEndTime() { return endTime; }
+    public void setEndTime(LocalTime endTime) { this.endTime = endTime; }
 }

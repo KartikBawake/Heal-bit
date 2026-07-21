@@ -11,16 +11,23 @@ import com.healbit.repository.AppointmentRepository;
 import com.healbit.repository.DoctorRepository;
 import com.healbit.repository.PatientRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
-import org.springframework.transaction.annotation.Transactional;
+
 @Transactional
 @Service
 public class AppointmentService {
+
+    private static final Set<AppointmentStatus> LIVE =
+            EnumSet.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED);
 
     private final AppointmentRepository appointmentRepository;
     private final PatientRepository patientRepository;
@@ -42,31 +49,48 @@ public class AppointmentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found with id " + request.getDoctorId()));
 
         Hospital hospital = doctor.getHospital();
+        LocalDate date = request.getAppointmentDate();
+        LocalTime time = request.getAppointmentTime();
 
-        // Rule: cannot book past dates.
-        if (request.getAppointmentDate().isBefore(LocalDate.now())) {
+        // Rule: cannot book past dates / times.
+        if (date.isBefore(LocalDate.now())) {
             throw new IllegalArgumentException("Appointment date cannot be in the past");
         }
+        if (date.equals(LocalDate.now()) && !time.isAfter(LocalTime.now())) {
+            throw new IllegalArgumentException("Appointment time has already passed");
+        }
 
-        // Rule: appointment time must fall within the doctor's working hours (expects "HH:mm-HH:mm").
-        validateWithinWorkingHours(doctor, request.getAppointmentTime());
+        // Rule: the doctor must have a configured weekly schedule.
+        if (!ScheduleUtil.scheduleConfigured(doctor)) {
+            throw new AppointmentConflictException("This doctor has not published a schedule yet");
+        }
 
-        // Rule: no duplicate appointment (same patient + doctor + date + time, not cancelled).
-        boolean duplicate = appointmentRepository
-                .existsByPatient_PatientIdAndDoctor_DoctorIdAndAppointmentDateAndAppointmentTimeAndStatusNot(
-                        patientId, doctor.getDoctorId(), request.getAppointmentDate(),
-                        request.getAppointmentTime(), AppointmentStatus.CANCELLED);
-        if (duplicate) {
+        // Rule: the chosen day must be one of the doctor's working days.
+        Set<DayOfWeek> days = ScheduleUtil.parseWorkingDays(doctor.getWorkingDays());
+        if (!days.contains(date.getDayOfWeek())) {
+            throw new AppointmentConflictException("The doctor does not work on the selected day");
+        }
+
+        // Rule: the time must be an exact 30-minute slot inside the working window.
+        if (!ScheduleUtil.generateSlots(doctor.getStartTime(), doctor.getEndTime()).contains(time)) {
             throw new AppointmentConflictException(
-                    "You already have an appointment with this doctor at the selected date and time");
+                    "Please choose a valid 30-minute slot within the doctor's working hours");
+        }
+
+        // Rule: the slot must be free (fixed 30-min slots => one appointment per slot).
+        boolean slotTaken = appointmentRepository
+                .existsByDoctor_DoctorIdAndAppointmentDateAndAppointmentTimeAndStatusIn(
+                        doctor.getDoctorId(), date, time, LIVE);
+        if (slotTaken) {
+            throw new AppointmentConflictException("That slot has just been booked. Please pick another time");
         }
 
         Appointment appointment = new Appointment();
         appointment.setPatient(patient);
         appointment.setHospital(hospital);
         appointment.setDoctor(doctor);
-        appointment.setAppointmentDate(request.getAppointmentDate());
-        appointment.setAppointmentTime(request.getAppointmentTime());
+        appointment.setAppointmentDate(date);
+        appointment.setAppointmentTime(time);
         appointment.setReason(request.getReason());
         appointment.setStatus(AppointmentStatus.PENDING);
 
@@ -75,25 +99,46 @@ public class AppointmentService {
 
     public List<AppointmentResponse> getPatientAppointments(Long patientId) {
         return appointmentRepository.findByPatient_PatientId(patientId)
-                .stream().map(this::toResponse).collect(Collectors.toList());
+                .stream().map(this::toResponse).sorted(byDateTimeDesc()).collect(Collectors.toList());
     }
 
     public List<AppointmentResponse> getHospitalAppointments(Long hospitalId) {
         return appointmentRepository.findByHospital_HospitalId(hospitalId)
-                .stream().map(this::toResponse).collect(Collectors.toList());
+                .stream().map(this::toResponse).sorted(byDateTimeDesc()).collect(Collectors.toList());
     }
 
-    /** Hospital confirms / rejects / completes one of its own appointments. */
-    public AppointmentResponse updateStatus(Long hospitalId, AppointmentStatusUpdateRequest request) {
+    public List<AppointmentResponse> getDoctorAppointments(Long doctorId) {
+        return appointmentRepository.findByDoctor_DoctorId(doctorId)
+                .stream().map(this::toResponse).sorted(byDateTimeDesc()).collect(Collectors.toList());
+    }
+
+    /** Doctor confirms / rejects / completes one of their own appointments. */
+    public AppointmentResponse updateStatusByDoctor(Long doctorId, AppointmentStatusUpdateRequest request) {
         Appointment appointment = appointmentRepository.findById(request.getAppointmentId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Appointment not found with id " + request.getAppointmentId()));
 
-        if (!appointment.getHospital().getHospitalId().equals(hospitalId)) {
-            throw new UnauthorizedException("Hospitals can only manage their own appointments");
+        if (!appointment.getDoctor().getDoctorId().equals(doctorId)) {
+            throw new UnauthorizedException("Doctors can only manage their own appointments");
         }
 
-        appointment.setStatus(request.getStatus());
+        AppointmentStatus target = request.getStatus();
+        AppointmentStatus current = appointment.getStatus();
+
+        if (current == AppointmentStatus.CANCELLED || current == AppointmentStatus.COMPLETED
+                || current == AppointmentStatus.REJECTED) {
+            throw new AppointmentConflictException("This appointment can no longer be changed");
+        }
+        Set<AppointmentStatus> allowed =
+                EnumSet.of(AppointmentStatus.CONFIRMED, AppointmentStatus.REJECTED, AppointmentStatus.COMPLETED);
+        if (!allowed.contains(target)) {
+            throw new IllegalArgumentException("A doctor can only confirm, reject, or complete an appointment");
+        }
+        if (target == AppointmentStatus.COMPLETED && current != AppointmentStatus.CONFIRMED) {
+            throw new AppointmentConflictException("Only a confirmed appointment can be marked completed");
+        }
+
+        appointment.setStatus(target);
         return toResponse(appointmentRepository.save(appointment));
     }
 
@@ -113,22 +158,10 @@ public class AppointmentService {
         appointmentRepository.save(appointment);
     }
 
-    private void validateWithinWorkingHours(Doctor doctor, LocalTime time) {
-        String window = doctor.getAvailableTime();
-        if (!StringUtils.hasText(window) || !window.contains("-")) {
-            return; // No structured working hours configured -> skip check.
-        }
-        try {
-            String[] parts = window.split("-");
-            LocalTime start = LocalTime.parse(parts[0].trim());
-            LocalTime end = LocalTime.parse(parts[1].trim());
-            if (time.isBefore(start) || time.isAfter(end)) {
-                throw new AppointmentConflictException(
-                        "Appointment time must be within working hours (" + window + ")");
-            }
-        } catch (java.time.format.DateTimeParseException ignored) {
-            // Unparseable working-hours string -> skip the check rather than block the booking.
-        }
+    private Comparator<AppointmentResponse> byDateTimeDesc() {
+        return Comparator
+                .comparing(AppointmentResponse::getAppointmentDate, Comparator.reverseOrder())
+                .thenComparing(AppointmentResponse::getAppointmentTime, Comparator.reverseOrder());
     }
 
     private AppointmentResponse toResponse(Appointment a) {
@@ -140,6 +173,7 @@ public class AppointmentService {
         r.setHospitalName(a.getHospital().getHospitalName());
         r.setDoctorId(a.getDoctor().getDoctorId());
         r.setDoctorName(a.getDoctor().getDoctorName());
+        r.setDoctorSpecialization(a.getDoctor().getSpecialization());
         r.setAppointmentDate(a.getAppointmentDate());
         r.setAppointmentTime(a.getAppointmentTime());
         r.setReason(a.getReason());

@@ -1,10 +1,24 @@
 import { useEffect, useState } from "react";
 import { getProfile, updateProfile } from "../../api/patientApi";
 import { getErrorMessage } from "../../utils/error";
+import { useFormValidation } from "../../hooks/useFormValidation";
+import { vName, vPhone, vAge } from "../../utils/validators";
+
+const initial = { fullName: "", phoneNumber: "", age: "", gender: "", address: "" };
+
+const validate = (v) => {
+  const e = {};
+  const put = (k, msg) => { if (msg) e[k] = msg; };
+  put("fullName", vName(v.fullName));
+  put("phoneNumber", vPhone(v.phoneNumber));
+  if (v.age !== "" && v.age != null) put("age", vAge(v.age));
+  return e;
+};
 
 export default function PatientProfile() {
-  const [form, setForm] = useState(null);
+  const { values, errors, field, reset, handleSubmit } = useFormValidation(initial, validate);
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState({ type: "", msg: "" });
   const [saving, setSaving] = useState(false);
 
@@ -13,7 +27,7 @@ export default function PatientProfile() {
       try {
         const { data } = await getProfile();
         setEmail(data.email);
-        setForm({
+        reset({
           fullName: data.fullName || "",
           phoneNumber: data.phoneNumber || "",
           age: data.age ?? "",
@@ -22,18 +36,18 @@ export default function PatientProfile() {
         });
       } catch (err) {
         setFeedback({ type: "error", msg: getErrorMessage(err) });
+      } finally {
+        setLoading(false);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
-  const onSubmit = async (e) => {
-    e.preventDefault();
+  const submit = async (v) => {
     setSaving(true);
     setFeedback({ type: "", msg: "" });
     try {
-      await updateProfile({ ...form, age: Number(form.age) });
+      await updateProfile({ ...v, age: v.age === "" ? null : Number(v.age) });
       setFeedback({ type: "success", msg: "Profile updated." });
     } catch (err) {
       setFeedback({ type: "error", msg: getErrorMessage(err) });
@@ -42,7 +56,9 @@ export default function PatientProfile() {
     }
   };
 
-  if (!form) return <p className="muted">Loading...</p>;
+  const cls = (name) => `input${errors[name] ? " input-error" : ""}`;
+
+  if (loading) return <p className="muted">Loading…</p>;
 
   return (
     <div>
@@ -57,29 +73,32 @@ export default function PatientProfile() {
         {feedback.msg && (
           <div className={`alert alert-${feedback.type === "success" ? "success" : "error"}`}>{feedback.msg}</div>
         )}
-        <form onSubmit={onSubmit}>
+        <form onSubmit={handleSubmit(submit)} noValidate>
           <div className="field">
             <label>Email (read-only)</label>
             <input className="input" value={email} disabled />
           </div>
           <div className="field">
             <label>Full name</label>
-            <input className="input" name="fullName" value={form.fullName} onChange={onChange} required />
+            <input className={cls("fullName")} {...field("fullName")} />
+            {errors.fullName && <p className="err">{errors.fullName}</p>}
           </div>
           <div className="row">
             <div className="field">
               <label>Phone</label>
-              <input className="input" name="phoneNumber" value={form.phoneNumber} onChange={onChange} required />
+              <input className={cls("phoneNumber")} {...field("phoneNumber")} placeholder="10 digits" />
+              {errors.phoneNumber && <p className="err">{errors.phoneNumber}</p>}
             </div>
             <div className="field">
               <label>Age</label>
-              <input className="input" type="number" name="age" value={form.age} onChange={onChange} min="1" max="120" />
+              <input className={cls("age")} type="number" {...field("age")} min="1" max="120" />
+              {errors.age && <p className="err">{errors.age}</p>}
             </div>
           </div>
           <div className="row">
             <div className="field">
               <label>Gender</label>
-              <select name="gender" value={form.gender} onChange={onChange}>
+              <select {...field("gender")}>
                 <option value="">Select</option>
                 <option>Male</option>
                 <option>Female</option>
@@ -88,11 +107,11 @@ export default function PatientProfile() {
             </div>
             <div className="field">
               <label>Address</label>
-              <input className="input" name="address" value={form.address} onChange={onChange} />
+              <input className="input" {...field("address")} />
             </div>
           </div>
           <button className="btn btn-primary" disabled={saving}>
-            {saving ? "Saving..." : "Save changes"}
+            {saving ? "Saving…" : "Save changes"}
           </button>
         </form>
       </div>

@@ -3,29 +3,41 @@ import { Link, useNavigate } from "react-router-dom";
 import { registerPatient } from "../../api/authApi";
 import { useAuth } from "../../context/AuthContext";
 import { getErrorMessage } from "../../utils/error";
+import { useFormValidation } from "../../hooks/useFormValidation";
+import { vName, vEmail, vPassword, vConfirm, vPhone, vAge } from "../../utils/validators";
+import PasswordStrength from "../../components/PasswordStrength";
 
 const initial = {
-  fullName: "", email: "", password: "", phoneNumber: "",
-  age: "", gender: "", address: "",
+  fullName: "", email: "", password: "", confirmPassword: "",
+  phoneNumber: "", age: "", gender: "", address: "",
+};
+
+const validate = (v) => {
+  const e = {};
+  const put = (k, msg) => { if (msg) e[k] = msg; };
+  put("fullName", vName(v.fullName));
+  put("email", vEmail(v.email));
+  put("password", vPassword(v.password));
+  put("confirmPassword", vConfirm(v.confirmPassword, v.password));
+  put("phoneNumber", vPhone(v.phoneNumber));
+  put("age", vAge(v.age));
+  return e;
 };
 
 export default function PatientRegister() {
-  const [form, setForm] = useState(initial);
+  const { values, errors, field, handleSubmit } = useFormValidation(initial, validate);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
-  const onSubmit = async (e) => {
-    e.preventDefault();
+  const submit = async (v) => {
     setError("");
     setLoading(true);
     try {
-      const payload = { ...form, age: Number(form.age) };
-      const { data } = await registerPatient(payload);
-      login(data); // backend auto-logs in (returns a token)
+      const { confirmPassword, ...rest } = v;
+      const { data } = await registerPatient({ ...rest, age: Number(v.age) });
+      login(data);
       navigate("/patient");
     } catch (err) {
       setError(getErrorMessage(err));
@@ -33,6 +45,8 @@ export default function PatientRegister() {
       setLoading(false);
     }
   };
+
+  const cls = (name) => `input${errors[name] ? " input-error" : ""}`;
 
   return (
     <div className="auth-wrap">
@@ -42,34 +56,46 @@ export default function PatientRegister() {
 
         {error && <div className="alert alert-error mt-3">{error}</div>}
 
-        <form onSubmit={onSubmit} className="mt-3">
+        <form onSubmit={handleSubmit(submit)} className="mt-3" noValidate>
           <div className="field">
             <label>Full name</label>
-            <input className="input" name="fullName" value={form.fullName} onChange={onChange} required />
+            <input className={cls("fullName")} {...field("fullName")} />
+            {errors.fullName && <p className="err">{errors.fullName}</p>}
           </div>
           <div className="field">
             <label>Email</label>
-            <input className="input" type="email" name="email" value={form.email} onChange={onChange} required />
+            <input className={cls("email")} type="email" {...field("email")} />
+            {errors.email && <p className="err">{errors.email}</p>}
           </div>
-          <div className="field">
-            <label>Password</label>
-            <input className="input" type="password" name="password" value={form.password} onChange={onChange} required />
-            <p className="hint">Min 8 characters, with one uppercase, one lowercase, and one number.</p>
+          <div className="row">
+            <div className="field">
+              <label>Password</label>
+              <input className={cls("password")} type="password" {...field("password")} />
+              <PasswordStrength value={values.password} />
+              {errors.password && <p className="err">{errors.password}</p>}
+            </div>
+            <div className="field">
+              <label>Confirm password</label>
+              <input className={cls("confirmPassword")} type="password" {...field("confirmPassword")} />
+              {errors.confirmPassword && <p className="err">{errors.confirmPassword}</p>}
+            </div>
           </div>
           <div className="row">
             <div className="field">
               <label>Phone</label>
-              <input className="input" name="phoneNumber" value={form.phoneNumber} onChange={onChange} placeholder="10 digits" required />
+              <input className={cls("phoneNumber")} {...field("phoneNumber")} placeholder="10 digits" />
+              {errors.phoneNumber && <p className="err">{errors.phoneNumber}</p>}
             </div>
             <div className="field">
               <label>Age</label>
-              <input className="input" type="number" name="age" value={form.age} onChange={onChange} min="1" max="120" required />
+              <input className={cls("age")} type="number" {...field("age")} min="1" max="120" />
+              {errors.age && <p className="err">{errors.age}</p>}
             </div>
           </div>
           <div className="row">
             <div className="field">
               <label>Gender</label>
-              <select name="gender" value={form.gender} onChange={onChange}>
+              <select {...field("gender")}>
                 <option value="">Select</option>
                 <option>Male</option>
                 <option>Female</option>
@@ -78,11 +104,11 @@ export default function PatientRegister() {
             </div>
             <div className="field">
               <label>Address</label>
-              <input className="input" name="address" value={form.address} onChange={onChange} />
+              <input className="input" {...field("address")} />
             </div>
           </div>
           <button className="btn btn-primary btn-block" disabled={loading}>
-            {loading ? "Creating account..." : "Create account"}
+            {loading ? "Creating account…" : "Create account"}
           </button>
         </form>
 

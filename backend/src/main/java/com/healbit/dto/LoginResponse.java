@@ -8,6 +8,7 @@ public class LoginResponse {
     private String name;
     private String email;
     private String role;
+    private String registrationNumber; // populated on hospital registration
 
     public LoginResponse() {
     }
@@ -37,4 +38,7 @@ public class LoginResponse {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public String getRegistrationNumber() { return registrationNumber; }
+    public void setRegistrationNumber(String registrationNumber) { this.registrationNumber = registrationNumber; }
 }

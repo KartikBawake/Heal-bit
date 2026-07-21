@@ -2,8 +2,11 @@ package com.healbit.controller;
 
 import com.healbit.config.UserPrincipal;
 import com.healbit.dto.ApiResponse;
+import com.healbit.dto.HospitalDashboardResponse;
 import com.healbit.dto.HospitalResponse;
+import com.healbit.dto.PageResponse;
 import com.healbit.dto.HospitalUpdateRequest;
+import com.healbit.service.HospitalDashboardService;
 import com.healbit.service.HospitalService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -17,17 +20,29 @@ import java.util.List;
 public class HospitalController {
 
     private final HospitalService hospitalService;
+    private final HospitalDashboardService hospitalDashboardService;
 
-    public HospitalController(HospitalService hospitalService) {
+    public HospitalController(HospitalService hospitalService,
+                              HospitalDashboardService hospitalDashboardService) {
         this.hospitalService = hospitalService;
+        this.hospitalDashboardService = hospitalDashboardService;
     }
 
-    /** Public: browse + search active hospitals. Optional ?city= or ?name= filters. */
+    /** Public: browse + search active hospitals. Optional ?city= / ?name= / ?pincode= filters. */
     @GetMapping
-    public ResponseEntity<List<HospitalResponse>> browse(
+    public ResponseEntity<PageResponse<HospitalResponse>> browse(
             @RequestParam(required = false) String city,
-            @RequestParam(required = false) String name) {
-        return ResponseEntity.ok(hospitalService.browseHospitals(city, name));
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String pincode,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(hospitalService.browseHospitals(city, name, pincode, page, size));
+    }
+
+    /** Hospital insights dashboard. */
+    @GetMapping("/dashboard")
+    public ResponseEntity<HospitalDashboardResponse> dashboard(@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(hospitalDashboardService.getDashboard(principal.getId()));
     }
 
     @GetMapping("/{id}")

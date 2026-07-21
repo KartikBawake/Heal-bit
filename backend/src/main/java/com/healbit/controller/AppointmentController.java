@@ -25,7 +25,7 @@ public class AppointmentController {
         this.appointmentService = appointmentService;
     }
 
-    /** Patient books an appointment. */
+    /** Patient books an appointment into a free slot. */
     @PostMapping
     public ResponseEntity<AppointmentResponse> book(
             @AuthenticationPrincipal UserPrincipal principal,
@@ -35,24 +35,28 @@ public class AppointmentController {
 
     /**
      * Returns appointments for the current actor:
-     * patients get their own history; hospitals get appointments made at their hospital.
+     * patients get their own history; doctors get their queue; hospitals get all appointments at their hospital.
      */
     @GetMapping
     public ResponseEntity<List<AppointmentResponse>> list(@AuthenticationPrincipal UserPrincipal principal) {
-        if ("PATIENT".equals(principal.getRole())) {
-            return ResponseEntity.ok(appointmentService.getPatientAppointments(principal.getId()));
-        } else if ("HOSPITAL".equals(principal.getRole())) {
-            return ResponseEntity.ok(appointmentService.getHospitalAppointments(principal.getId()));
+        switch (principal.getRole()) {
+            case "PATIENT":
+                return ResponseEntity.ok(appointmentService.getPatientAppointments(principal.getId()));
+            case "DOCTOR":
+                return ResponseEntity.ok(appointmentService.getDoctorAppointments(principal.getId()));
+            case "HOSPITAL":
+                return ResponseEntity.ok(appointmentService.getHospitalAppointments(principal.getId()));
+            default:
+                return ResponseEntity.ok(Collections.emptyList());
         }
-        return ResponseEntity.ok(Collections.emptyList());
     }
 
-    /** Hospital accepts/rejects/completes an appointment. */
+    /** Doctor confirms / rejects / completes one of their appointments. */
     @PutMapping("/status")
     public ResponseEntity<AppointmentResponse> updateStatus(
             @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody AppointmentStatusUpdateRequest request) {
-        return ResponseEntity.ok(appointmentService.updateStatus(principal.getId(), request));
+        return ResponseEntity.ok(appointmentService.updateStatusByDoctor(principal.getId(), request));
     }
 
     /** Patient cancels their own appointment. */

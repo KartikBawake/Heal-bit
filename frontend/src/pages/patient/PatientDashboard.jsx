@@ -57,31 +57,6 @@ export default function PatientDashboard() {
           </div>
         </div>
       )}
-
-      <h2 className="mt-3">Quick actions</h2>
-      <div className="tiles mt-2">
-        <Link to="/patient/hospitals" className="tile">
-          <span className="tile-icon"><Icon name="hospital" /></span>
-          <div className="tile-body">
-            <h3>Browse hospitals</h3>
-            <p>Search by city and view available doctors.</p>
-          </div>
-        </Link>
-        <Link to="/patient/appointments" className="tile">
-          <span className="tile-icon"><Icon name="clipboard" /></span>
-          <div className="tile-body">
-            <h3>My appointments</h3>
-            <p>Track your bookings and cancel if plans change.</p>
-          </div>
-        </Link>
-        <Link to="/patient/profile" className="tile">
-          <span className="tile-icon"><Icon name="user" /></span>
-          <div className="tile-body">
-            <h3>My profile</h3>
-            <p>Keep your contact details up to date.</p>
-          </div>
-        </Link>
-      </div>
     </div>
   );
 }
