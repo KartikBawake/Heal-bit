@@ -12,6 +12,7 @@ public class PatientProfileResponse {
     private String gender;
     private String address;
     private LocalDateTime createdAt;
+    private String city;
 
     public Long getPatientId() { return patientId; }
     public void setPatientId(Long patientId) { this.patientId = patientId; }
@@ -36,4 +37,7 @@ public class PatientProfileResponse {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
 }

@@ -4,7 +4,7 @@ import { getErrorMessage } from "../../utils/error";
 import { useFormValidation } from "../../hooks/useFormValidation";
 import { vName, vPhone, vAge } from "../../utils/validators";
 
-const initial = { fullName: "", phoneNumber: "", age: "", gender: "", address: "" };
+const initial = { fullName: "", phoneNumber: "", age: "", gender: "", address: "", city: "" };
 
 const validate = (v) => {
   const e = {};
@@ -33,6 +33,7 @@ export default function PatientProfile() {
           age: data.age ?? "",
           gender: data.gender || "",
           address: data.address || "",
+          city: data.city || "",
         });
       } catch (err) {
         setFeedback({ type: "error", msg: getErrorMessage(err) });
@@ -109,6 +110,11 @@ export default function PatientProfile() {
               <label>Address</label>
               <input className="input" {...field("address")} />
             </div>
+          </div>
+          <div className="field">
+            <label>City</label>
+            <input className="input" {...field("city")} placeholder="e.g. Pune" />
+            <p className="hint">We'll show hospitals in your city first when you browse.</p>
           </div>
           <button className="btn btn-primary" disabled={saving}>
             {saving ? "Saving…" : "Save changes"}

@@ -42,6 +42,9 @@ public class DoctorRequest {
     @JsonFormat(pattern = "HH:mm")
     private LocalTime endTime;
 
+    // Recurring daily breaks (lunch, recess, etc.) within the working window.
+    private List<BreakPeriod> breaks;
+
     public Long getDoctorId() { return doctorId; }
     public void setDoctorId(Long doctorId) { this.doctorId = doctorId; }
 
@@ -74,4 +77,7 @@ public class DoctorRequest {
 
     public LocalTime getEndTime() { return endTime; }
     public void setEndTime(LocalTime endTime) { this.endTime = endTime; }
+
+    public List<BreakPeriod> getBreaks() { return breaks; }
+    public void setBreaks(List<BreakPeriod> breaks) { this.breaks = breaks; }
 }

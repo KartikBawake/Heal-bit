@@ -63,6 +63,7 @@ public class AuthenticationService {
         patient.setAge(request.getAge());
         patient.setGender(request.getGender());
         patient.setAddress(request.getAddress());
+        patient.setCity(request.getCity());
 
         Patient saved = patientRepository.save(patient);
 

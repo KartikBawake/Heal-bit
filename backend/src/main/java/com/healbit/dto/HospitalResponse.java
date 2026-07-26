@@ -19,6 +19,28 @@ public class HospitalResponse {
     private HospitalStatus status;
     private LocalDateTime createdAt;
 
+    // Computed: aggregate rating from patients (null if no ratings yet) and how many ratings.
+    private Double averageRating;
+    private long ratingCount;
+
+    // Cancellation policy configured by the hospital.
+    private boolean allowCancellationAfterAcceptance;
+    private Integer cancellationMinHours;
+
+    public Double getAverageRating() { return averageRating; }
+    public void setAverageRating(Double averageRating) { this.averageRating = averageRating; }
+
+    public long getRatingCount() { return ratingCount; }
+    public void setRatingCount(long ratingCount) { this.ratingCount = ratingCount; }
+
+    public boolean isAllowCancellationAfterAcceptance() { return allowCancellationAfterAcceptance; }
+    public void setAllowCancellationAfterAcceptance(boolean allowCancellationAfterAcceptance) {
+        this.allowCancellationAfterAcceptance = allowCancellationAfterAcceptance;
+    }
+
+    public Integer getCancellationMinHours() { return cancellationMinHours; }
+    public void setCancellationMinHours(Integer cancellationMinHours) { this.cancellationMinHours = cancellationMinHours; }
+
     public Long getHospitalId() { return hospitalId; }
     public void setHospitalId(Long hospitalId) { this.hospitalId = hospitalId; }
 

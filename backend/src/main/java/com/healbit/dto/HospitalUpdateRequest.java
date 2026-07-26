@@ -1,6 +1,7 @@
 package com.healbit.dto;
 
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.PositiveOrZero;
 
 public class HospitalUpdateRequest {
 
@@ -19,6 +20,21 @@ public class HospitalUpdateRequest {
     private String description;
 
     private String image;
+
+    // Cancellation policy: whether patients may cancel appointments the hospital has already
+    // accepted (CONFIRMED), and the minimum notice (in hours) required to cancel at all.
+    private Boolean allowCancellationAfterAcceptance;
+
+    @PositiveOrZero(message = "Minimum cancellation notice cannot be negative")
+    private Integer cancellationMinHours;
+
+    public Boolean getAllowCancellationAfterAcceptance() { return allowCancellationAfterAcceptance; }
+    public void setAllowCancellationAfterAcceptance(Boolean allowCancellationAfterAcceptance) {
+        this.allowCancellationAfterAcceptance = allowCancellationAfterAcceptance;
+    }
+
+    public Integer getCancellationMinHours() { return cancellationMinHours; }
+    public void setCancellationMinHours(Integer cancellationMinHours) { this.cancellationMinHours = cancellationMinHours; }
 
     public String getHospitalName() { return hospitalName; }
     public void setHospitalName(String hospitalName) { this.hospitalName = hospitalName; }

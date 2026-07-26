@@ -5,6 +5,8 @@ import { listDoctors, getSlots } from "../../api/doctorApi";
 import { bookAppointment } from "../../api/appointmentApi";
 import { getErrorMessage } from "../../utils/error";
 import { WEEK_DAYS } from "../../constants";
+import StarRating from "../../components/StarRating";
+import { doctorStatusTag } from "../../utils/doctorStatus";
 
 const today = new Date().toISOString().split("T")[0];
 
@@ -126,6 +128,9 @@ export default function HospitalDetails() {
             {[hospital.city, hospital.state].filter(Boolean).join(", ")}
             {hospital.pincode ? ` · ${hospital.pincode}` : ""}
           </p>
+          <div className="mt-2">
+            <StarRating value={hospital.averageRating || 0} count={hospital.ratingCount} size={15} />
+          </div>
         </div>
         <Link to="/patient/hospitals" className="btn btn-outline btn-sm">Back to list</Link>
       </div>
@@ -139,21 +144,27 @@ export default function HospitalDetails() {
         <div className="card empty mt-2">This hospital has not listed any doctors yet.</div>
       ) : (
         <div className="grid grid-2 mt-2">
-          {doctors.map((d) => (
+          {doctors.map((d) => {
+            const tag = doctorStatusTag(d);
+            return (
             <div key={d.doctorId} className="card">
               <div className="flex-between">
                 <h3>Dr. {d.doctorName}</h3>
-                <span className={`avail-tag ${d.available ? "on" : "off"}`}>
-                  <span className="dot-ind" /> {d.available ? "Available" : "Unavailable"}
+                <span className={`avail-tag ${tag.cls}`}>
+                  <span className="dot-ind" /> {tag.label}
                 </span>
               </div>
               <p className="muted mt-2">{d.specialization}{d.qualification ? ` · ${d.qualification}` : ""}</p>
+              <StarRating value={d.averageRating || 0} count={d.ratingCount} size={13} />
               <p className="mt-2">
                 {d.experience != null ? `${d.experience} yrs experience` : ""}
                 {d.consultationFee != null ? ` · Fee ₹${d.consultationFee}` : ""}
               </p>
               {d.workingDays?.length > 0 && (
                 <p className="muted">{workingDaysLabel(d.workingDays)} · {d.startTime}–{d.endTime}</p>
+              )}
+              {d.breaks?.length > 0 && (
+                <p className="muted">Break: {d.breaks.map((b) => `${b.startTime}–${b.endTime}`).join(", ")}</p>
               )}
 
               {bookingFor?.doctorId === d.doctorId ? (
@@ -209,7 +220,8 @@ export default function HospitalDetails() {
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { getMyDoctorProfile, updateMySchedule } from "../../api/doctorApi";
 import { getErrorMessage } from "../../utils/error";
 import { WEEK_DAYS } from "../../constants";
+import BreakEditor from "../../components/BreakEditor";
+import { doctorStatusTag } from "../../utils/doctorStatus";
 
 function countSlots(start, end) {
   if (!start || !end) return 0;
@@ -17,6 +19,7 @@ export default function DoctorSchedule() {
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [fee, setFee] = useState("");
+  const [breaks, setBreaks] = useState([]);
   const [feedback, setFeedback] = useState({ type: "", msg: "" });
   const [saving, setSaving] = useState(false);
 
@@ -28,6 +31,7 @@ export default function DoctorSchedule() {
         setStart(data.startTime || "");
         setEnd(data.endTime || "");
         setFee(data.consultationFee ?? "");
+        setBreaks(data.breaks || []);
       })
       .catch((e) => setFeedback({ type: "error", msg: getErrorMessage(e) }));
   }, []);
@@ -37,12 +41,23 @@ export default function DoctorSchedule() {
 
   const slots = useMemo(() => countSlots(start, end), [start, end]);
 
+  const validateBreaks = () => {
+    for (const b of breaks) {
+      if (!b.startTime || !b.endTime) return "Each break needs a start and end time.";
+      if (b.startTime >= b.endTime) return "Each break's start time must be before its end time.";
+      if (b.startTime < start || b.endTime > end) return "Break times must fall within your working hours.";
+    }
+    return "";
+  };
+
   const onSubmit = async (e) => {
     e.preventDefault();
     setFeedback({ type: "", msg: "" });
     if (days.length === 0) return setFeedback({ type: "error", msg: "Pick at least one working day." });
     if (!start || !end) return setFeedback({ type: "error", msg: "Set both start and end times." });
     if (start >= end) return setFeedback({ type: "error", msg: "Start time must be before end time." });
+    const breakErr = validateBreaks();
+    if (breakErr) return setFeedback({ type: "error", msg: breakErr });
 
     setSaving(true);
     try {
@@ -51,8 +66,10 @@ export default function DoctorSchedule() {
         startTime: start,
         endTime: end,
         consultationFee: fee === "" ? null : Number(fee),
+        breaks,
       });
       setProfile(data);
+      setBreaks(data.breaks || []);
       setFeedback({ type: "success", msg: "Schedule saved. Patients can now book your open 30-minute slots." });
     } catch (err) {
       setFeedback({ type: "error", msg: getErrorMessage(err) });
@@ -63,6 +80,8 @@ export default function DoctorSchedule() {
 
   if (!profile) return <p className="muted">Loading…</p>;
 
+  const tag = doctorStatusTag(profile);
+
   return (
     <div>
       <div className="page-head">
@@ -71,8 +90,8 @@ export default function DoctorSchedule() {
           <h1>My schedule</h1>
           <p className="sub">Appointments run in fixed 30-minute slots within your working window.</p>
         </div>
-        <span className={`avail-tag ${profile.available ? "on" : "off"}`}>
-          <span className="dot-ind" /> {profile.available ? "Available" : "Not available"}
+        <span className={`avail-tag ${tag.cls}`}>
+          <span className="dot-ind" /> {tag.label}
         </span>
       </div>
 
@@ -116,6 +135,9 @@ export default function DoctorSchedule() {
         {slots > 0 && (
           <p className="hint">That’s <strong>{slots}</strong> slots of 30 minutes per working day.</p>
         )}
+
+        <BreakEditor breaks={breaks} onChange={setBreaks} />
+        <p className="hint">Patients won’t be able to book slots that fall inside a break, and you’ll show as “On break now” while one is active.</p>
 
         <div className="actions mt-2">
           <button className="btn btn-primary" disabled={saving}>{saving ? "Saving…" : "Save schedule"}</button>

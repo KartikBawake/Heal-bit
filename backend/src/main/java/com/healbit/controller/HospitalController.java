@@ -28,15 +28,18 @@ public class HospitalController {
         this.hospitalDashboardService = hospitalDashboardService;
     }
 
-    /** Public: browse + search active hospitals. Optional ?city= / ?name= / ?pincode= filters. */
+    /** Public: browse + search active hospitals. Optional ?city= / ?name= / ?pincode= filters.
+     *  If the caller is a signed-in patient, hospitals in their own city are shown first. */
     @GetMapping
     public ResponseEntity<PageResponse<HospitalResponse>> browse(
+            @AuthenticationPrincipal UserPrincipal principal,
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String pincode,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(hospitalService.browseHospitals(city, name, pincode, page, size));
+        Long patientId = (principal != null && "PATIENT".equals(principal.getRole())) ? principal.getId() : null;
+        return ResponseEntity.ok(hospitalService.browseHospitals(city, name, pincode, page, size, patientId));
     }
 
     /** Hospital insights dashboard. */

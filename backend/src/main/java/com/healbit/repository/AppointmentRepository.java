@@ -34,6 +34,11 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     boolean existsByPatient_PatientIdAndDoctor_DoctorIdAndAppointmentDateAndAppointmentTimeAndStatusNot(
             Long patientId, Long doctorId, LocalDate appointmentDate, LocalTime appointmentTime, AppointmentStatus status);
 
+    // Used to gate ratings: a patient may only rate a doctor/hospital they've actually completed a visit with.
+    boolean existsByPatient_PatientIdAndDoctor_DoctorIdAndStatus(Long patientId, Long doctorId, AppointmentStatus status);
+
+    boolean existsByPatient_PatientIdAndHospital_HospitalIdAndStatus(Long patientId, Long hospitalId, AppointmentStatus status);
+
     long count();
 
     long countByStatus(AppointmentStatus status);

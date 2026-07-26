@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import { getAllUsers, deleteUser } from "../../api/adminApi";
 import { getErrorMessage } from "../../utils/error";
+import Pagination from "../../components/Pagination";
+
+const PAGE_SIZE = 5;
 
 export default function ManageUsers() {
   const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
 
   const load = async () => {
     setLoading(true);
@@ -20,6 +24,11 @@ export default function ManageUsers() {
   };
 
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(users.length / PAGE_SIZE) - 1);
+    if (page > maxPage) setPage(maxPage);
+  }, [users, page]);
 
   const onDelete = async (id) => {
     if (!window.confirm("Delete this patient?")) return;
@@ -52,7 +61,7 @@ export default function ManageUsers() {
               <tr><th>Name</th><th>Email</th><th>Phone</th><th>Age</th><th>Gender</th><th></th></tr>
             </thead>
             <tbody>
-              {users.map((u) => (
+              {users.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE).map((u) => (
                 <tr key={u.patientId}>
                   <td>{u.fullName}</td>
                   <td>{u.email}</td>
@@ -66,6 +75,11 @@ export default function ManageUsers() {
               ))}
             </tbody>
           </table>
+          <Pagination
+            page={page}
+            totalPages={Math.ceil(users.length / PAGE_SIZE)}
+            onChange={setPage}
+          />
         </div>
       )}
     </div>

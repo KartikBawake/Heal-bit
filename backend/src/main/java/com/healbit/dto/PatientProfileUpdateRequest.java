@@ -20,6 +20,8 @@ public class PatientProfileUpdateRequest {
 
     private String address;
 
+    private String city;
+
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
 
@@ -34,4 +36,7 @@ public class PatientProfileUpdateRequest {
 
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
+
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
 }

@@ -38,6 +38,9 @@ public class PatientService {
         if (request.getAddress() != null) {
             patient.setAddress(request.getAddress());
         }
+        if (request.getCity() != null) {
+            patient.setCity(request.getCity());
+        }
 
         Patient saved = patientRepository.save(patient);
         return toResponse(saved);
@@ -52,6 +55,7 @@ public class PatientService {
         response.setAge(patient.getAge());
         response.setGender(patient.getGender());
         response.setAddress(patient.getAddress());
+        response.setCity(patient.getCity());
         response.setCreatedAt(patient.getCreatedAt());
         return response;
     }

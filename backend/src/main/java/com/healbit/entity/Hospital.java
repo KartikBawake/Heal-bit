@@ -54,6 +54,15 @@ public class Hospital {
     @Column(nullable = false)
     private boolean deleted = false;
 
+    // Cancellation policy, configurable per hospital.
+    // Whether a patient may cancel an appointment the hospital/doctor has already accepted (CONFIRMED).
+    @Column(nullable = false)
+    private boolean allowCancellationAfterAcceptance = true;
+
+    // Minimum number of hours before the scheduled appointment time that a cancellation must be
+    // made by. Null/0 means no minimum-notice restriction.
+    private Integer cancellationMinHours;
+
     @OneToMany(mappedBy = "hospital", fetch = FetchType.LAZY)
     private List<Doctor> doctors = new ArrayList<>();
 
@@ -112,6 +121,14 @@ public class Hospital {
 
     public boolean isDeleted() { return deleted; }
     public void setDeleted(boolean deleted) { this.deleted = deleted; }
+
+    public boolean isAllowCancellationAfterAcceptance() { return allowCancellationAfterAcceptance; }
+    public void setAllowCancellationAfterAcceptance(boolean allowCancellationAfterAcceptance) {
+        this.allowCancellationAfterAcceptance = allowCancellationAfterAcceptance;
+    }
+
+    public Integer getCancellationMinHours() { return cancellationMinHours; }
+    public void setCancellationMinHours(Integer cancellationMinHours) { this.cancellationMinHours = cancellationMinHours; }
 
     public List<Doctor> getDoctors() { return doctors; }
     public void setDoctors(List<Doctor> doctors) { this.doctors = doctors; }

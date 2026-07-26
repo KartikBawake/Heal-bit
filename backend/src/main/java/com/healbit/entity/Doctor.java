@@ -43,6 +43,10 @@ public class Doctor {
 
     private LocalTime endTime;
 
+    // Recurring daily break windows (e.g. lunch, recess), serialized as "label|HH:mm|HH:mm;label|HH:mm|HH:mm"
+    @Column(length = 500)
+    private String breaks;
+
     @Column(nullable = false)
     private boolean deleted = false;
 
@@ -84,6 +88,9 @@ public class Doctor {
 
     public LocalTime getEndTime() { return endTime; }
     public void setEndTime(LocalTime endTime) { this.endTime = endTime; }
+
+    public String getBreaks() { return breaks; }
+    public void setBreaks(String breaks) { this.breaks = breaks; }
 
     public boolean isDeleted() { return deleted; }
     public void setDeleted(boolean deleted) { this.deleted = deleted; }
