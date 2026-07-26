@@ -51,6 +51,11 @@ public class SecurityConfig {
                 // Public browsing for patients (hospitals, doctors, and open slots)
                 .requestMatchers(HttpMethod.GET, "/hospitals", "/hospitals/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/doctors", "/doctors/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/specializations", "/specializations/**").permitAll()
+
+                // Ratings: patients submit ratings; anyone can read the aggregated reviews.
+                .requestMatchers(HttpMethod.GET, "/ratings/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/ratings/**").hasRole("PATIENT")
 
                 // Patient-only
                 .requestMatchers("/patients/**").hasRole("PATIENT")

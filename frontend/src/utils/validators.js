@@ -6,8 +6,15 @@ export const isPhone10 = (v) => /^\d{10}$/.test(v || "");
 export const isPincode6 = (v) => /^\d{6}$/.test(v || "");
 
 // --- field validators: return "" when valid, else a message ---
+export const isAlphaName = (v) => /^[A-Za-z]+(?:\s[A-Za-z]+)*$/.test(String(v ?? "").trim());
+
 export const vRequired = (v, label = "This field") => (String(v ?? "").trim() ? "" : `${label} is required.`);
-export const vName = (v) => (String(v ?? "").trim().length >= 3 ? "" : "Enter a full name (at least 3 characters).");
+export const vName = (v) => {
+  const val = String(v ?? "").trim();
+  if (val.length < 3) return "Enter a full name (at least 3 characters).";
+  if (!isAlphaName(val)) return "Name can only contain alphabets (letters and single spaces between words).";
+  return "";
+};
 export const vEmail = (v) => (isEmail(v) ? "" : "Enter a valid email address.");
 export const vPhone = (v) => (isPhone10(v) ? "" : "Phone must be exactly 10 digits.");
 export const vPincode = (v) => (isPincode6(v) ? "" : "Pincode must be exactly 6 digits.");

@@ -4,8 +4,9 @@ import { browseHospitals } from "../../api/hospitalApi";
 import { getErrorMessage } from "../../utils/error";
 import Icon from "../../components/icons";
 import Pagination from "../../components/Pagination";
+import StarRating from "../../components/StarRating";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 export default function BrowseHospitals() {
   const [hospitals, setHospitals] = useState([]);
@@ -100,6 +101,9 @@ export default function BrowseHospitals() {
                   {h.pincode ? ` · ${h.pincode}` : ""}
                 </p>
                 {h.description && <p className="mt-2">{h.description}</p>}
+                <div className="mt-2">
+                  <StarRating value={h.averageRating || 0} count={h.ratingCount} size={14} />
+                </div>
                 <div className="actions mt-3">
                   <Link to={`/patient/hospitals/${h.hospitalId}`} className="btn btn-primary btn-sm">
                     View doctors &amp; book

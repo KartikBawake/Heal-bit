@@ -8,6 +8,7 @@ import ImagePicker from "../../components/ImagePicker";
 
 const initial = {
   hospitalName: "", phone: "", address: "", city: "", state: "", pincode: "", description: "", image: "",
+  allowCancellationAfterAcceptance: true, cancellationMinHours: "",
 };
 
 const validate = (v) => {
@@ -16,6 +17,9 @@ const validate = (v) => {
   put("hospitalName", vRequired(v.hospitalName, "Hospital name"));
   if (v.phone && !isPhone10(v.phone)) put("phone", "Phone must be exactly 10 digits.");
   if (v.pincode && !isPincode6(v.pincode)) put("pincode", "Pincode must be exactly 6 digits.");
+  if (v.cancellationMinHours !== "" && Number(v.cancellationMinHours) < 0) {
+    put("cancellationMinHours", "Cannot be negative.");
+  }
   return e;
 };
 
@@ -32,6 +36,8 @@ export default function HospitalProfile() {
         hospitalName: data.hospitalName || "", phone: data.phone || "", address: data.address || "",
         city: data.city || "", state: data.state || "", pincode: data.pincode || "",
         description: data.description || "", image: data.imageUrl || "",
+        allowCancellationAfterAcceptance: data.allowCancellationAfterAcceptance ?? true,
+        cancellationMinHours: data.cancellationMinHours ?? "",
       }))
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -41,9 +47,13 @@ export default function HospitalProfile() {
     setSaving(true);
     setFeedback({ type: "", msg: "" });
     // Send only non-empty text fields (so blank optional fields don't fail pattern checks),
-    // but always send image so it can be updated or cleared.
-    const payload = Object.fromEntries(Object.entries(v).filter(([k, val]) => k !== "image" && val !== ""));
+    // but always send image and the cancellation policy toggle so they can be updated or cleared.
+    const payload = Object.fromEntries(
+      Object.entries(v).filter(([k, val]) => !["image", "allowCancellationAfterAcceptance", "cancellationMinHours"].includes(k) && val !== "")
+    );
     payload.image = v.image;
+    payload.allowCancellationAfterAcceptance = v.allowCancellationAfterAcceptance;
+    payload.cancellationMinHours = v.cancellationMinHours === "" ? null : Number(v.cancellationMinHours);
     try {
       await updateHospital(payload);
       setFeedback({ type: "success", msg: "Hospital profile updated." });
@@ -111,6 +121,34 @@ export default function HospitalProfile() {
             <label>Description</label>
             <textarea {...field("description")} />
           </div>
+
+          <h3 className="mt-2">Cancellation policy</h3>
+          <p className="sub">Control whether — and how late — patients can cancel appointments you've already accepted.</p>
+          <div className="field">
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 500 }}>
+              <input
+                type="checkbox"
+                checked={values.allowCancellationAfterAcceptance}
+                onChange={(e) => setValue("allowCancellationAfterAcceptance", e.target.checked)}
+              />
+              Allow patients to cancel an appointment after it has been accepted (confirmed)
+            </label>
+          </div>
+          <div className="field">
+            <label>Minimum notice required to cancel (hours)</label>
+            <input
+              className={cls("cancellationMinHours")}
+              type="number"
+              min="0"
+              {...field("cancellationMinHours")}
+              placeholder="e.g. 2 — leave blank for no minimum"
+            />
+            {errors.cancellationMinHours && <p className="err">{errors.cancellationMinHours}</p>}
+            <p className="hint">
+              Patients must cancel at least this many hours before the appointment time. Leave blank for no minimum-notice restriction.
+            </p>
+          </div>
+
           <button className="btn btn-primary" disabled={saving}>
             {saving ? "Saving…" : "Save changes"}
           </button>

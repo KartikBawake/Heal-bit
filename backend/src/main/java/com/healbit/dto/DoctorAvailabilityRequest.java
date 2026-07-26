@@ -18,6 +18,9 @@ public class DoctorAvailabilityRequest {
 
     private Double consultationFee;
 
+    // Recurring daily breaks (lunch, recess, etc.) within the working window.
+    private List<BreakPeriod> breaks;
+
     public List<String> getWorkingDays() { return workingDays; }
     public void setWorkingDays(List<String> workingDays) { this.workingDays = workingDays; }
 
@@ -29,4 +32,7 @@ public class DoctorAvailabilityRequest {
 
     public Double getConsultationFee() { return consultationFee; }
     public void setConsultationFee(Double consultationFee) { this.consultationFee = consultationFee; }
+
+    public List<BreakPeriod> getBreaks() { return breaks; }
+    public void setBreaks(List<BreakPeriod> breaks) { this.breaks = breaks; }
 }

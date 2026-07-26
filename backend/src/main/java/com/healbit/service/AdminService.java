@@ -188,6 +188,7 @@ public class AdminService {
         r.setAge(p.getAge());
         r.setGender(p.getGender());
         r.setAddress(p.getAddress());
+        r.setCity(p.getCity());
         r.setCreatedAt(p.getCreatedAt());
         return r;
     }

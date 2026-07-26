@@ -1,11 +1,7 @@
 // Shared, front-end-wide constants.
 
-export const SPECIALTIES = [
-  "Cardiology", "Dermatology", "Neurology", "Orthopedics", "Pediatrics",
-  "Gynecology", "General Medicine", "ENT", "Ophthalmology", "Psychiatry",
-  "Dentistry", "Urology", "Oncology", "Gastroenterology", "Pulmonology",
-  "Endocrinology", "Nephrology", "General Surgery",
-];
+// NOTE: Specializations used to be hardcoded here. They now live in a database-backed master
+// table managed by admins and are fetched at runtime via specializationApi.getSpecializations().
 
 // value = stored token, label = display
 export const WEEK_DAYS = [

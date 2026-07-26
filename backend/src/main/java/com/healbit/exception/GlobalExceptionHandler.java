@@ -65,6 +65,17 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body(HttpStatus.BAD_REQUEST, ex.getMessage()), HttpStatus.BAD_REQUEST);
     }
 
+    // Safety net: turns any raw DB unique-constraint violation (e.g. a race between two
+    // concurrent "add" requests for the same name) into a friendly message instead of leaking
+    // the SQL exception text to the client. Service-layer checks (see SpecializationService)
+    // should prevent this from firing under normal use; this only catches the residual race.
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<Object> handleDataIntegrity(org.springframework.dao.DataIntegrityViolationException ex) {
+        return new ResponseEntity<>(
+                body(HttpStatus.CONFLICT, "This entry already exists. Please use a different name."),
+                HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGeneric(Exception ex) {
         return new ResponseEntity<>(

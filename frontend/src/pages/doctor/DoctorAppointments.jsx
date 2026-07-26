@@ -2,14 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import { listAppointments, updateAppointmentStatus } from "../../api/appointmentApi";
 import { getErrorMessage } from "../../utils/error";
 import StatusBadge from "../../components/StatusBadge";
+import Pagination from "../../components/Pagination";
 
 const FILTERS = ["ALL", "PENDING", "CONFIRMED", "COMPLETED", "REJECTED", "CANCELLED"];
+const PAGE_SIZE = 5;
 
 export default function DoctorAppointments() {
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("ALL");
+  const [page, setPage] = useState(0);
 
   const load = async () => {
     setLoading(true);
@@ -40,6 +43,13 @@ export default function DoctorAppointments() {
     [items, filter]
   );
 
+  useEffect(() => { setPage(0); }, [filter]);
+
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(shown.length / PAGE_SIZE) - 1);
+    if (page > maxPage) setPage(maxPage);
+  }, [shown, page]);
+
   return (
     <div>
       <div className="page-head">
@@ -69,7 +79,7 @@ export default function DoctorAppointments() {
               <tr><th>Patient</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
-              {shown.map((a) => (
+              {shown.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE).map((a) => (
                 <tr key={a.appointmentId}>
                   <td>{a.patientName}</td>
                   <td>{a.appointmentDate}</td>
@@ -94,6 +104,11 @@ export default function DoctorAppointments() {
               ))}
             </tbody>
           </table>
+          <Pagination
+            page={page}
+            totalPages={Math.ceil(shown.length / PAGE_SIZE)}
+            onChange={setPage}
+          />
         </div>
       )}
     </div>

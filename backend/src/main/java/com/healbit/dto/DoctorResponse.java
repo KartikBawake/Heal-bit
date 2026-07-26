@@ -25,8 +25,35 @@ public class DoctorResponse {
     @JsonFormat(pattern = "HH:mm")
     private LocalTime endTime;
 
-    // Computed: does the doctor have at least one free slot in the next 7 days?
+    // Recurring daily breaks (lunch, recess, etc.) within the working window.
+    private List<BreakPeriod> breaks;
+
+    // Computed: does the doctor have at least one free slot in the next 7 days? Drives whether
+    // "Book appointment" is enabled — this is a booking-window check, NOT the doctor's real-time
+    // presence status, so it deliberately stays true even outside working hours today.
     private boolean available;
+
+    // Computed: is right now (today, current time) inside one of the doctor's break windows?
+    // Kept for backward compatibility; prefer currentStatus for display.
+    private boolean onBreakNow;
+
+    // Computed real-time presence status for display: "UNAVAILABLE" | "ON_BREAK" | "AVAILABLE".
+    // Unlike `available` above, this reflects whether the doctor is within their configured
+    // working hours (and not on a break) *right now*.
+    private String currentStatus;
+
+    public String getCurrentStatus() { return currentStatus; }
+    public void setCurrentStatus(String currentStatus) { this.currentStatus = currentStatus; }
+
+    // Computed: aggregate rating from patients (null if no ratings yet) and how many ratings.
+    private Double averageRating;
+    private long ratingCount;
+
+    public Double getAverageRating() { return averageRating; }
+    public void setAverageRating(Double averageRating) { this.averageRating = averageRating; }
+
+    public long getRatingCount() { return ratingCount; }
+    public void setRatingCount(long ratingCount) { this.ratingCount = ratingCount; }
 
     public Long getDoctorId() { return doctorId; }
     public void setDoctorId(Long doctorId) { this.doctorId = doctorId; }
@@ -69,4 +96,10 @@ public class DoctorResponse {
 
     public boolean isAvailable() { return available; }
     public void setAvailable(boolean available) { this.available = available; }
+
+    public List<BreakPeriod> getBreaks() { return breaks; }
+    public void setBreaks(List<BreakPeriod> breaks) { this.breaks = breaks; }
+
+    public boolean isOnBreakNow() { return onBreakNow; }
+    public void setOnBreakNow(boolean onBreakNow) { this.onBreakNow = onBreakNow; }
 }

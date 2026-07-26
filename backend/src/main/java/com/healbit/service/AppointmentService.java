@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -71,8 +72,10 @@ public class AppointmentService {
             throw new AppointmentConflictException("The doctor does not work on the selected day");
         }
 
-        // Rule: the time must be an exact 30-minute slot inside the working window.
-        if (!ScheduleUtil.generateSlots(doctor.getStartTime(), doctor.getEndTime()).contains(time)) {
+        // Rule: the time must be an exact 30-minute slot inside the working window, and must
+        // not fall inside one of the doctor's break windows.
+        List<com.healbit.dto.BreakPeriod> breaks = ScheduleUtil.parseBreaks(doctor.getBreaks());
+        if (!ScheduleUtil.generateSlots(doctor.getStartTime(), doctor.getEndTime(), breaks).contains(time)) {
             throw new AppointmentConflictException(
                     "Please choose a valid 30-minute slot within the doctor's working hours");
         }
@@ -152,6 +155,30 @@ public class AppointmentService {
         }
         if (appointment.getStatus() == AppointmentStatus.COMPLETED) {
             throw new AppointmentConflictException("A completed appointment cannot be cancelled");
+        }
+        if (appointment.getStatus() == AppointmentStatus.CANCELLED) {
+            throw new AppointmentConflictException("This appointment is already cancelled");
+        }
+
+        Hospital hospital = appointment.getHospital();
+
+        // Once a hospital/doctor has accepted (CONFIRMED) an appointment, cancellation is only
+        // allowed if the hospital has opted to permit it.
+        if (appointment.getStatus() == AppointmentStatus.CONFIRMED && !hospital.isAllowCancellationAfterAcceptance()) {
+            throw new AppointmentConflictException(
+                    "This hospital does not allow cancelling an appointment that has already been accepted");
+        }
+
+        // Minimum notice: the hospital can require cancellations to happen at least N hours
+        // before the scheduled appointment time.
+        Integer minHours = hospital.getCancellationMinHours();
+        if (minHours != null && minHours > 0) {
+            LocalDateTime appointmentDateTime = LocalDateTime.of(appointment.getAppointmentDate(), appointment.getAppointmentTime());
+            if (!LocalDateTime.now().plusHours(minHours).isBefore(appointmentDateTime)) {
+                throw new AppointmentConflictException(
+                        "Cancellations must be made at least " + minHours + " hour" + (minHours == 1 ? "" : "s") +
+                                " before the appointment time");
+            }
         }
 
         appointment.setStatus(AppointmentStatus.CANCELLED);

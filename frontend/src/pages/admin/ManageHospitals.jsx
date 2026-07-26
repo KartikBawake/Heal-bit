@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { getAllHospitals, approveHospital, rejectHospital, removeHospital } from "../../api/adminApi";
 import { getErrorMessage } from "../../utils/error";
 import StatusBadge from "../../components/StatusBadge";
+import Pagination from "../../components/Pagination";
+
+const PAGE_SIZE = 5;
 
 const FILTERS = [
   { key: "all", label: "All" },
@@ -17,6 +20,7 @@ export default function ManageHospitals() {
   const [filter, setFilter] = useState("all");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
 
   const load = async (f = filter) => {
     setLoading(true);
@@ -30,7 +34,12 @@ export default function ManageHospitals() {
     }
   };
 
-  useEffect(() => { load(filter); /* eslint-disable-next-line */ }, [filter]);
+  useEffect(() => { load(filter); setPage(0); /* eslint-disable-next-line */ }, [filter]);
+
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(hospitals.length / PAGE_SIZE) - 1);
+    if (page > maxPage) setPage(maxPage);
+  }, [hospitals, page]);
 
   const run = async (fn, id, confirmMsg) => {
     if (confirmMsg && !window.confirm(confirmMsg)) return;
@@ -72,7 +81,7 @@ export default function ManageHospitals() {
               <tr><th>Name</th><th>Reg. no.</th><th>Email</th><th>City</th><th>Registered</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
-              {hospitals.map((h) => (
+              {hospitals.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE).map((h) => (
                 <tr key={h.hospitalId}>
                   <td>{h.hospitalName}</td>
                   <td>{h.registrationNumber}</td>
@@ -95,6 +104,11 @@ export default function ManageHospitals() {
               ))}
             </tbody>
           </table>
+          <Pagination
+            page={page}
+            totalPages={Math.ceil(hospitals.length / PAGE_SIZE)}
+            onChange={setPage}
+          />
         </div>
       )}
     </div>

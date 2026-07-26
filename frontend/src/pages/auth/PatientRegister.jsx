@@ -9,7 +9,7 @@ import PasswordStrength from "../../components/PasswordStrength";
 
 const initial = {
   fullName: "", email: "", password: "", confirmPassword: "",
-  phoneNumber: "", age: "", gender: "", address: "",
+  phoneNumber: "", age: "", gender: "", address: "", city: "",
 };
 
 const validate = (v) => {
@@ -106,6 +106,11 @@ export default function PatientRegister() {
               <label>Address</label>
               <input className="input" {...field("address")} />
             </div>
+          </div>
+          <div className="field">
+            <label>City</label>
+            <input className="input" {...field("city")} placeholder="e.g. Pune" />
+            <p className="hint">We'll show hospitals in your city first when you browse.</p>
           </div>
           <button className="btn btn-primary btn-block" disabled={loading}>
             {loading ? "Creating account…" : "Create account"}
