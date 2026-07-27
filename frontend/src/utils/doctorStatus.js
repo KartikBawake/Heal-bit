@@ -1,14 +1,11 @@
-// Maps a doctor's real-time `currentStatus` (from DoctorResponse) to a display tag.
-// currentStatus is computed server-side from working hours + break windows compared against
-// the current time — see ScheduleUtil#computeCurrentStatus on the backend.
+// Display tag for a doctor's availability.
+//
+// "Available" here means BOOKABLE — the doctor has a published schedule with at least one
+// open 30-minute slot in the next 7 days (DoctorResponse.available), regardless of whether
+// they happen to be within working hours at this exact moment. We only surface the real-time
+// "On break" state (DoctorResponse.onBreakNow) because that's genuinely useful right now.
 export function doctorStatusTag(doctor) {
-  switch (doctor?.currentStatus) {
-    case "ON_BREAK":
-      return { cls: "break", label: "On break" };
-    case "AVAILABLE":
-      return { cls: "on", label: "Available" };
-    case "UNAVAILABLE":
-    default:
-      return { cls: "off", label: "Unavailable" };
-  }
+  if (doctor?.onBreakNow) return { cls: "break", label: "On break" };
+  if (doctor?.available) return { cls: "on", label: "Available" };
+  return { cls: "off", label: "Unavailable" };
 }

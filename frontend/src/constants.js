@@ -43,3 +43,7 @@ export const STATUS_COLORS = {
   REJECTED: "#b91c1c",
   CANCELLED: "#9ca3af",
 };
+
+// Google reCAPTCHA v2 site key (override with VITE_RECAPTCHA_SITE_KEY in an .env file).
+export const RECAPTCHA_SITE_KEY =
+  import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LeYHGgtAAAAAKArqcFg-70uSKuR34X_E5yN-YEr";

@@ -504,3 +504,6 @@ a.contact-row:hover { text-decoration: none; border-color: var(--primary); backg
 /* Invalid field state (live validation) */
 .input-error, textarea.input-error, select.input-error { border-color: var(--red); background: #fdf6f6; }
 .input-error:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.15); }
+
+/* reCAPTCHA widget spacing */
+.captcha-box { margin: 6px 0 16px; min-height: 78px; }

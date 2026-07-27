@@ -6,6 +6,7 @@ import { getErrorMessage } from "../../utils/error";
 import { useFormValidation } from "../../hooks/useFormValidation";
 import { vName, vEmail, vPassword, vConfirm, vPhone, vAge } from "../../utils/validators";
 import PasswordStrength from "../../components/PasswordStrength";
+import Recaptcha from "../../components/Recaptcha";
 
 const initial = {
   fullName: "", email: "", password: "", confirmPassword: "",
@@ -26,21 +27,26 @@ const validate = (v) => {
 
 export default function PatientRegister() {
   const { values, errors, field, handleSubmit } = useFormValidation(initial, validate);
+  const [captcha, setCaptcha] = useState("");
+  const [captchaKey, setCaptchaKey] = useState(0);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const resetCaptcha = () => { setCaptcha(""); setCaptchaKey((k) => k + 1); };
 
   const submit = async (v) => {
     setError("");
     setLoading(true);
     try {
       const { confirmPassword, ...rest } = v;
-      const { data } = await registerPatient({ ...rest, age: Number(v.age) });
+      const { data } = await registerPatient({ ...rest, age: Number(v.age) }, captcha);
       login(data);
       navigate("/patient");
     } catch (err) {
       setError(getErrorMessage(err));
+      resetCaptcha();
     } finally {
       setLoading(false);
     }
@@ -112,7 +118,8 @@ export default function PatientRegister() {
             <input className="input" {...field("city")} placeholder="e.g. Pune" />
             <p className="hint">We'll show hospitals in your city first when you browse.</p>
           </div>
-          <button className="btn btn-primary btn-block" disabled={loading}>
+          <Recaptcha key={captchaKey} onToken={setCaptcha} />
+          <button className="btn btn-primary btn-block" disabled={loading || !captcha}>
             {loading ? "Creating account…" : "Create account"}
           </button>
         </form>

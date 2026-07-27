@@ -3,26 +3,31 @@ import { Link, useNavigate } from "react-router-dom";
 import { loginHospital } from "../../api/authApi";
 import { useAuth } from "../../context/AuthContext";
 import { getErrorMessage } from "../../utils/error";
+import Recaptcha from "../../components/Recaptcha";
 
 export default function HospitalLogin() {
   const [form, setForm] = useState({ email: "", password: "" });
+  const [captcha, setCaptcha] = useState("");
+  const [captchaKey, setCaptchaKey] = useState(0);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const resetCaptcha = () => { setCaptcha(""); setCaptchaKey((k) => k + 1); };
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const { data } = await loginHospital(form);
+      const { data } = await loginHospital(form, captcha);
       login(data);
       navigate("/hospital");
     } catch (err) {
       setError(getErrorMessage(err)); // includes "account is PENDING..." messaging
+      resetCaptcha();
     } finally {
       setLoading(false);
     }
@@ -46,7 +51,8 @@ export default function HospitalLogin() {
             <label>Password</label>
             <input className="input" type="password" name="password" value={form.password} onChange={onChange} required />
           </div>
-          <button className="btn btn-primary btn-block" disabled={loading}>
+          <Recaptcha key={captchaKey} onToken={setCaptcha} />
+          <button className="btn btn-primary btn-block" disabled={loading || !captcha}>
             {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>

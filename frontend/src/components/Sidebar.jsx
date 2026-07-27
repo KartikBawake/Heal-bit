@@ -23,8 +23,9 @@ const LINKS = {
   ADMIN: [
     { to: "/admin", label: "Dashboard", icon: "grid", end: true },
     { to: "/admin/hospitals", label: "Hospitals", icon: "hospital" },
+    { to: "/admin/doctors", label: "Doctors", icon: "stethoscope" },
     { to: "/admin/users", label: "Patients", icon: "users" },
-    { to: "/admin/specializations", label: "Specializations", icon: "stethoscope" },
+    { to: "/admin/specializations", label: "Specializations", icon: "clipboard" },
   ],
 };
 

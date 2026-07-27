@@ -6,6 +6,7 @@ import { useFormValidation } from "../../hooks/useFormValidation";
 import { vRequired, vEmail, vPassword, vConfirm, vPhone, isPincode6 } from "../../utils/validators";
 import PasswordStrength from "../../components/PasswordStrength";
 import ImagePicker from "../../components/ImagePicker";
+import Recaptcha from "../../components/Recaptcha";
 
 const initial = {
   hospitalName: "", email: "", password: "", confirmPassword: "",
@@ -30,18 +31,23 @@ export default function HospitalRegister() {
   const [regNo, setRegNo] = useState("");
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [captcha, setCaptcha] = useState("");
+  const [captchaKey, setCaptchaKey] = useState(0);
   const navigate = useNavigate();
+
+  const resetCaptcha = () => { setCaptcha(""); setCaptchaKey((k) => k + 1); };
 
   const submit = async (v) => {
     setError("");
     setLoading(true);
     try {
       const { confirmPassword, ...rest } = v;
-      const { data } = await registerHospital(rest);
+      const { data } = await registerHospital(rest, captcha);
       setRegNo(data.registrationNumber || "");
       setDone(true);
     } catch (err) {
       setError(getErrorMessage(err));
+      resetCaptcha();
     } finally {
       setLoading(false);
     }
@@ -141,7 +147,8 @@ export default function HospitalRegister() {
             onError={(msg) => setError(msg)}
             label="Hospital photo (optional)"
           />
-          <button className="btn btn-primary btn-block" disabled={loading}>
+          <Recaptcha key={captchaKey} onToken={setCaptcha} />
+          <button className="btn btn-primary btn-block" disabled={loading || !captcha}>
             {loading ? "Submitting…" : "Register hospital"}
           </button>
         </form>

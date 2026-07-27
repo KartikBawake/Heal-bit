@@ -31,6 +31,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import ManageHospitals from "./pages/admin/ManageHospitals";
 import ManageUsers from "./pages/admin/ManageUsers";
 import ManageSpecializations from "./pages/admin/ManageSpecializations";
+import AdminDoctors from "./pages/admin/AdminDoctors";
 
 export default function App() {
   return (
@@ -70,6 +71,7 @@ export default function App() {
         <Route path="/admin" element={<ProtectedRoute allow={["ADMIN"]}><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin/hospitals" element={<ProtectedRoute allow={["ADMIN"]}><ManageHospitals /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute allow={["ADMIN"]}><ManageUsers /></ProtectedRoute>} />
+        <Route path="/admin/doctors" element={<ProtectedRoute allow={["ADMIN"]}><AdminDoctors /></ProtectedRoute>} />
         <Route path="/admin/specializations" element={<ProtectedRoute allow={["ADMIN"]}><ManageSpecializations /></ProtectedRoute>} />
       </Route>
 
