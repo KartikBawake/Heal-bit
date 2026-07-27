@@ -1,0 +1,4 @@
+
+# Patient uploaded documents (stored on disk, not in git)
+backend/uploads/
+uploads/

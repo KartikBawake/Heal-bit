@@ -7,6 +7,7 @@ const LINKS = {
     { to: "/patient", label: "Dashboard", icon: "grid", end: true },
     { to: "/patient/hospitals", label: "Find hospitals", icon: "hospital" },
     { to: "/patient/appointments", label: "My appointments", icon: "calendar" },
+    { to: "/patient/documents", label: "My documents", icon: "file" },
     { to: "/patient/profile", label: "Profile", icon: "user" },
   ],
   HOSPITAL: [

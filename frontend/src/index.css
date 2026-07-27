@@ -507,3 +507,24 @@ a.contact-row:hover { text-decoration: none; border-color: var(--primary); backg
 
 /* reCAPTCHA widget spacing */
 .captcha-box { margin: 6px 0 16px; min-height: 78px; }
+
+/* ============================================================
+   Patient documents (My Documents)
+   ============================================================ */
+.upload-progress { height: 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; margin-bottom: 16px; }
+.upload-progress-bar { height: 100%; background: var(--grad-primary); transition: width 0.15s ease; }
+
+.doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.doc-card { background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--r); box-shadow: var(--shadow-sm); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease; }
+.doc-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--primary); }
+.doc-thumb { width: 100%; height: 140px; border: none; background: var(--surface-2); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; overflow: hidden; }
+.doc-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.doc-thumb-icon { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--primary-700); }
+.doc-ext { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.08em; color: var(--muted); }
+.doc-meta { padding: 12px 14px 4px; }
+.doc-name { font-weight: 600; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doc-sub { color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
+.doc-actions { display: flex; gap: 4px; padding: 8px 12px 12px; margin-top: auto; }
+.icon-btn.danger { color: var(--red); border-color: #f0c9c9; }
+.icon-btn.danger:hover { background: #fdf0f0; }
+.icon-btn:disabled { opacity: 0.5; cursor: not-allowed; }

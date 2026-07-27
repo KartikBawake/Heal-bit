@@ -6,6 +6,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -63,6 +64,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CaptchaException.class)
     public ResponseEntity<Object> handleCaptcha(CaptchaException ex) {
         return new ResponseEntity<>(body(HttpStatus.BAD_REQUEST, ex.getMessage()), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Object> handleMaxSize(MaxUploadSizeExceededException ex) {
+        return new ResponseEntity<>(body(HttpStatus.BAD_REQUEST, "File is too large. The maximum size is 10 MB."), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

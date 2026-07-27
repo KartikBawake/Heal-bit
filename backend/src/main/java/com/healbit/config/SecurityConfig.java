@@ -44,6 +44,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/doctors/me").hasRole("DOCTOR")
                 .requestMatchers(HttpMethod.PUT, "/doctors/me/schedule").hasRole("DOCTOR")
                 .requestMatchers(HttpMethod.GET, "/doctors/dashboard").hasRole("DOCTOR")
+                .requestMatchers(HttpMethod.GET, "/doctors/patients/**").hasRole("DOCTOR")
 
                 // Hospital insights — declared before the public /hospitals/** rule.
                 .requestMatchers(HttpMethod.GET, "/hospitals/dashboard").hasRole("HOSPITAL")

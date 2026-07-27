@@ -17,6 +17,7 @@ import BrowseHospitals from "./pages/patient/BrowseHospitals";
 import HospitalDetails from "./pages/patient/HospitalDetails";
 import MyAppointments from "./pages/patient/MyAppointments";
 import PatientProfile from "./pages/patient/PatientProfile";
+import PatientDocuments from "./pages/patient/PatientDocuments";
 
 import HospitalDashboard from "./pages/hospital/HospitalDashboard";
 import ManageDoctors from "./pages/hospital/ManageDoctors";
@@ -26,6 +27,7 @@ import HospitalProfile from "./pages/hospital/HospitalProfile";
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import DoctorAppointments from "./pages/doctor/DoctorAppointments";
 import DoctorSchedule from "./pages/doctor/DoctorSchedule";
+import DoctorPatientDocuments from "./pages/doctor/DoctorPatientDocuments";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ManageHospitals from "./pages/admin/ManageHospitals";
@@ -54,6 +56,7 @@ export default function App() {
         <Route path="/patient/hospitals" element={<ProtectedRoute allow={["PATIENT"]}><BrowseHospitals /></ProtectedRoute>} />
         <Route path="/patient/hospitals/:id" element={<ProtectedRoute allow={["PATIENT"]}><HospitalDetails /></ProtectedRoute>} />
         <Route path="/patient/appointments" element={<ProtectedRoute allow={["PATIENT"]}><MyAppointments /></ProtectedRoute>} />
+        <Route path="/patient/documents" element={<ProtectedRoute allow={["PATIENT"]}><PatientDocuments /></ProtectedRoute>} />
         <Route path="/patient/profile" element={<ProtectedRoute allow={["PATIENT"]}><PatientProfile /></ProtectedRoute>} />
 
         {/* Hospital */}
@@ -66,6 +69,7 @@ export default function App() {
         <Route path="/doctor" element={<ProtectedRoute allow={["DOCTOR"]}><DoctorDashboard /></ProtectedRoute>} />
         <Route path="/doctor/appointments" element={<ProtectedRoute allow={["DOCTOR"]}><DoctorAppointments /></ProtectedRoute>} />
         <Route path="/doctor/schedule" element={<ProtectedRoute allow={["DOCTOR"]}><DoctorSchedule /></ProtectedRoute>} />
+        <Route path="/doctor/patients/:patientId/documents" element={<ProtectedRoute allow={["DOCTOR"]}><DoctorPatientDocuments /></ProtectedRoute>} />
 
         {/* Admin */}
         <Route path="/admin" element={<ProtectedRoute allow={["ADMIN"]}><AdminDashboard /></ProtectedRoute>} />

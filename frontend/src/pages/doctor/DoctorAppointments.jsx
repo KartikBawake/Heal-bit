@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { listAppointments, updateAppointmentStatus } from "../../api/appointmentApi";
 import { getErrorMessage } from "../../utils/error";
 import StatusBadge from "../../components/StatusBadge";
 import Pagination from "../../components/Pagination";
+
+// Documents are viewable for patients whose appointment is live (not cancelled/rejected).
+const DOC_STATUSES = ["PENDING", "CONFIRMED", "COMPLETED"];
 
 const FILTERS = ["ALL", "PENDING", "CONFIRMED", "COMPLETED", "REJECTED", "CANCELLED"];
 const PAGE_SIZE = 5;
@@ -13,6 +17,10 @@ export default function DoctorAppointments() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("ALL");
   const [page, setPage] = useState(0);
+  const navigate = useNavigate();
+
+  const openDocs = (a) =>
+    navigate(`/doctor/patients/${a.patientId}/documents`, { state: { patientName: a.patientName } });
 
   const load = async () => {
     setLoading(true);
@@ -97,7 +105,10 @@ export default function DoctorAppointments() {
                       {a.status === "CONFIRMED" && (
                         <button className="btn btn-outline btn-sm" onClick={() => setStatus(a.appointmentId, "COMPLETED")}>Mark completed</button>
                       )}
-                      {!["PENDING", "CONFIRMED"].includes(a.status) && <span className="muted">—</span>}
+                      {DOC_STATUSES.includes(a.status) && (
+                        <button className="btn btn-outline btn-sm" onClick={() => openDocs(a)}>Documents</button>
+                      )}
+                      {["CANCELLED", "REJECTED"].includes(a.status) && <span className="muted">—</span>}
                     </div>
                   </td>
                 </tr>

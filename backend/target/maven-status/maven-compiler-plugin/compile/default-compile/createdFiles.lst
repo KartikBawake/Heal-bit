@@ -6,6 +6,8 @@ com\healbit\config\SecurityConfig.class
 com\healbit\repository\AppointmentRepository.class
 com\healbit\dto\AppointmentResponse.class
 com\healbit\service\PatientService.class
+com\healbit\service\FileStorageService.class
+com\healbit\controller\PatientDocumentController.class
 com\healbit\controller\DoctorController.class
 com\healbit\entity\HospitalStatus.class
 com\healbit\controller\RatingController.class
@@ -22,6 +24,7 @@ com\healbit\dto\SpecializationRequest.class
 com\healbit\entity\AppointmentStatus.class
 com\healbit\config\AdminInitializer.class
 com\healbit\service\DoctorService.class
+com\healbit\service\PatientDocumentService.class
 com\healbit\dto\PatientProfileResponse.class
 com\healbit\exception\DuplicateResourceException.class
 com\healbit\service\SpecializationService.class
@@ -50,6 +53,7 @@ com\healbit\entity\Doctor.class
 com\healbit\dto\HospitalDashboardResponse$DoctorLoad.class
 com\healbit\dto\JWTResponse.class
 com\healbit\dto\PatientRegisterRequest.class
+com\healbit\repository\PatientDocumentRepository.class
 com\healbit\config\UserPrincipal.class
 com\healbit\service\DoctorDashboardService.class
 com\healbit\controller\AppointmentController.class
@@ -57,6 +61,7 @@ com\healbit\dto\DoctorAvailabilityRequest.class
 com\healbit\dto\PageResponse.class
 com\healbit\entity\Patient.class
 com\healbit\repository\DoctorRepository.class
+com\healbit\dto\PatientDocumentResponse.class
 com\healbit\service\AuthenticationService.class
 com\healbit\dto\RatingRequest.class
 com\healbit\dto\AdminLoginRequest.class
@@ -73,12 +78,14 @@ com\healbit\entity\DoctorRating.class
 com\healbit\dto\HospitalUpdateRequest.class
 com\healbit\service\ScheduleUtil.class
 com\healbit\service\HospitalService.class
+com\healbit\entity\PatientDocument.class
 com\healbit\service\AppointmentService.class
 com\healbit\service\ImageValidator.class
 com\healbit\entity\Admin.class
 com\healbit\repository\HospitalRepository.class
 com\healbit\controller\PatientController.class
 com\healbit\dto\HospitalPerformance.class
+com\healbit\controller\DoctorPatientDocumentController.class
 com\healbit\service\MetricsUtil.class
 com\healbit\repository\HospitalRatingRepository.class
 com\healbit\entity\Specialization.class
