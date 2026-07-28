@@ -2,7 +2,39 @@
 
 A full-stack healthcare web application built using **Spring Boot**, **React**, and **MySQL**.
 
-## Getting Started
+## Run with Docker
+
+The fastest way to run the full application is with Docker. This starts the frontend, backend, and MySQL database together.
+
+### Requirements
+
+Install and start [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+
+### Start the application
+
+```bash
+git clone https://github.com/KartikBawake/Heal-bit.git
+cd Heal-bit
+docker compose up --build
+```
+
+Open the application at:
+
+```text
+http://localhost:5173
+```
+
+### Stop the application
+
+Press `Ctrl + C` in the terminal, then run:
+
+```bash
+docker compose down
+```
+
+The MySQL data is stored in a Docker volume and remains available the next time you run `docker compose up`. Do not run `docker compose down -v` unless you want to delete the saved database data.
+
+## Run locally without Docker
 
 ### 1. Clone the Repository
 
