@@ -1,28 +1,27 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getDoctorDashboard } from "../../api/doctorApi";
+import { getDoctorDashboard, getMyDoctorProfile } from "../../api/doctorApi";
 import { getErrorMessage } from "../../utils/error";
 import Icon from "../../components/icons";
+import Kpi from "../../components/Kpi";
 import StatusBadge from "../../components/StatusBadge";
+import PaymentBadge from "../../components/PaymentBadge";
+import StarRating from "../../components/StarRating";
 import { TrendArea, StatusDonut } from "../../components/Charts";
-import { STATUS_COLORS, CHART } from "../../constants";
+import { STATUS_COLORS, CHART, WEEK_DAYS } from "../../constants";
+import { friendlyDate, money, initials } from "../../utils/format";
 
-const Kpi = ({ icon, value, label, tone }) => (
-  <div className={`kpi${tone ? " kpi-" + tone : ""}`}>
-    <span className="kpi-icon"><Icon name={icon} size={20} /></span>
-    <div>
-      <div className="kpi-value">{value ?? 0}</div>
-      <div className="kpi-label">{label}</div>
-    </div>
-  </div>
-);
+const todayIso = new Date().toISOString().split("T")[0];
 
 export default function DoctorDashboard() {
   const [d, setD] = useState(null);
+  const [me, setMe] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    getDoctorDashboard().then(({ data }) => setD(data)).catch((e) => setError(getErrorMessage(e)));
+    Promise.all([getDoctorDashboard(), getMyDoctorProfile()])
+      .then(([dash, prof]) => { setD(dash.data); setMe(prof.data); })
+      .catch((e) => setError(getErrorMessage(e)));
   }, []);
 
   if (error) return <div className="alert alert-error">{error}</div>;
@@ -37,25 +36,24 @@ export default function DoctorDashboard() {
     { name: "Expired", value: d.expiredAppointments, color: STATUS_COLORS.EXPIRED },
   ];
 
+  const upcoming = d.upcoming || [];
+  const todayList = upcoming.filter((a) => a.appointmentDate === todayIso);
+  const workingDays = me?.workingDays || [];
+
   return (
     <div>
-      <div className="dash-hero">
-        <div>
+      <header className="dash-top">
+        <span className="dash-avatar">{initials(d.doctorName)}</span>
+        <div className="dash-top-main">
           <p className="eyebrow">Doctor</p>
           <h1>Dr. {d.doctorName}</h1>
           <p className="sub">{d.specialization} · {d.hospitalName}</p>
         </div>
-        <div className="chips">
-          <div className="chip">
-            <span className="chip-icon"><Icon name="calendar" /></span>
-            <span className="chip-meta"><b>{d.todayAppointments}</b><span>today</span></span>
-          </div>
-          <div className="chip">
-            <span className="chip-icon"><Icon name="clock" /></span>
-            <span className="chip-meta"><b>{d.pendingAppointments}</b><span>to review</span></span>
-          </div>
+        <div className="dash-top-side">
+          <div className="dash-pill"><b>{d.todayAppointments}</b><span>today</span></div>
+          <div className="dash-pill"><b>{d.pendingAppointments}</b><span>to review</span></div>
         </div>
-      </div>
+      </header>
 
       {!d.scheduleConfigured && (
         <div className="alert alert-error">
@@ -65,10 +63,92 @@ export default function DoctorDashboard() {
       )}
 
       <div className="kpi-grid">
-        <Kpi icon="calendar" value={d.totalAppointments} label="Total" tone="primary" />
-        <Kpi icon="clock" value={d.pendingAppointments} label="Pending" tone="amber" />
+        <Kpi icon="calendar" value={d.todayAppointments} label="Today" tone="primary"
+             sub={todayList.length > 0 ? `Next at ${todayList[0].appointmentTime}` : "Nothing scheduled"} />
+        <Kpi icon="clock" value={d.pendingAppointments} label="Awaiting your decision" tone="amber" />
         <Kpi icon="care" value={d.confirmedAppointments} label="Confirmed" tone="teal" />
-        <Kpi icon="clipboard" value={d.completedAppointments} label="Completed" tone="blue" />
+        <Kpi icon="clipboard" value={d.completedAppointments} label="Completed" tone="blue"
+             sub={`${d.totalAppointments} all time`} />
+      </div>
+
+      <div className="dash-split mt-3">
+        <section className="panel">
+          <div className="panel-head">
+            <h3>Upcoming appointments</h3>
+            <Link to="/doctor/appointments" className="btn btn-outline btn-sm">View all</Link>
+          </div>
+          <div className="panel-body">
+            {upcoming.length === 0 ? (
+              <div className="panel-empty">
+                <span className="panel-empty-icon"><Icon name="calendar" size={22} /></span>
+                <p>No upcoming appointments.</p>
+              </div>
+            ) : (
+              <div className="mini-list">
+                {upcoming.map((a) => (
+                  <div className="mini-row" key={a.appointmentId}>
+                    <div className="mini-when">
+                      <b>{friendlyDate(a.appointmentDate)}</b>
+                      <span>{a.appointmentTime}</span>
+                    </div>
+                    <div className="mini-main">
+                      <strong>{a.patientName}</strong>
+                      <span>{a.reason}</span>
+                    </div>
+                    <div className="mini-side">
+                      <PaymentBadge status={a.paymentStatus} method={a.paymentMethod} />
+                      <StatusBadge status={a.status} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="panel-head">
+            <h3>Your practice</h3>
+            <Link to="/doctor/schedule" className="btn btn-outline btn-sm">Edit</Link>
+          </div>
+          <div className="panel-body">
+            <div className="mini-row" style={{ borderBottom: "1px solid var(--border-soft)" }}>
+              <div className="mini-main">
+                <strong>Rating</strong>
+                <span>{me?.ratingCount ? `${me.ratingCount} patient review${me.ratingCount === 1 ? "" : "s"}` : "No reviews yet"}</span>
+              </div>
+              <div className="mini-side"><StarRating value={me?.averageRating || 0} size={15} /></div>
+            </div>
+
+            <div className="mini-row" style={{ borderBottom: "1px solid var(--border-soft)" }}>
+              <div className="mini-main">
+                <strong>Consultation fee</strong>
+                <span>Charged per 30-minute slot</span>
+              </div>
+              <div className="mini-side">
+                <span className="rank-val">{money(me?.consultationFee)}</span>
+              </div>
+            </div>
+
+            <div style={{ paddingTop: 14 }}>
+              <p className="muted" style={{ margin: "0 0 8px", fontSize: "0.82rem" }}>Working days</p>
+              <div className="day-pills">
+                {WEEK_DAYS.map((day) => (
+                  <span key={day.value} className={`day-pill${workingDays.includes(day.value) ? " on" : ""}`}>
+                    {day.label}
+                  </span>
+                ))}
+              </div>
+              <p className="muted mt-2" style={{ fontSize: "0.85rem" }}>
+                <Icon name="clock" size={14} />{" "}
+                {me?.startTime && me?.endTime ? `${me.startTime} – ${me.endTime}` : "Hours not set"}
+                {me?.breaks?.length > 0 && (
+                  <> · Break {me.breaks.map((b) => `${b.startTime}–${b.endTime}`).join(", ")}</>
+                )}
+              </p>
+            </div>
+          </div>
+        </section>
       </div>
 
       <div className="chart-grid mt-3">
@@ -80,33 +160,6 @@ export default function DoctorDashboard() {
           <h3>By status</h3>
           <StatusDonut data={statusData} />
         </div>
-      </div>
-
-      <div className="card mt-3">
-        <div className="flex-between">
-          <h3>Upcoming appointments</h3>
-          <Link to="/doctor/appointments" className="btn btn-outline btn-sm">View all</Link>
-        </div>
-        {(!d.upcoming || d.upcoming.length === 0) ? (
-          <p className="muted mt-2">No upcoming appointments.</p>
-        ) : (
-          <div className="table-wrap mt-2" style={{ border: "none", boxShadow: "none" }}>
-            <table>
-              <thead><tr><th>Patient</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th></tr></thead>
-              <tbody>
-                {d.upcoming.map((a) => (
-                  <tr key={a.appointmentId}>
-                    <td>{a.patientName}</td>
-                    <td>{a.appointmentDate}</td>
-                    <td>{a.appointmentTime}</td>
-                    <td>{a.reason}</td>
-                    <td><StatusBadge status={a.status} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
     </div>
   );
