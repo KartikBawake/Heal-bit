@@ -30,15 +30,20 @@
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-html, body, #root { height: 100%; }
+html, body, #root { min-height: 100%; }
 
 body {
   margin: 0;
   color: var(--ink);
-  background:
-    radial-gradient(1100px 560px at 78% -12%, rgba(15, 118, 110, 0.12), transparent 60%),
-    radial-gradient(900px 500px at 0% 0%, rgba(232, 115, 79, 0.06), transparent 55%),
-    var(--bg);
+  /* A single soft wash pinned to the viewport. `no-repeat` + `fixed` stop the
+     gradients from tiling into bands on long pages. */
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(1200px 700px at 80% -10%, rgba(15, 118, 110, 0.10), transparent 65%),
+    radial-gradient(900px 600px at -5% 5%, rgba(232, 115, 79, 0.05), transparent 60%);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: fixed, fixed;
+  background-size: cover, cover;
   font-family: "Inter", system-ui, -apple-system, sans-serif;
   font-size: 15px;
   line-height: 1.55;
