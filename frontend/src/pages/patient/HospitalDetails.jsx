@@ -2,11 +2,20 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getHospital } from "../../api/hospitalApi";
 import { listDoctors, getSlots } from "../../api/doctorApi";
-import { bookAppointment } from "../../api/appointmentApi";
+import { bookAppointment, discardBooking } from "../../api/appointmentApi";
+import { createPaymentOrder, verifyPayment } from "../../api/paymentApi";
+import { loadRazorpay } from "../../utils/razorpay";
 import { getErrorMessage } from "../../utils/error";
 import { WEEK_DAYS } from "../../constants";
 import StarRating from "../../components/StarRating";
+import Modal from "../../components/Modal";
+import Icon from "../../components/icons";
 import { doctorStatusTag } from "../../utils/doctorStatus";
+
+// Avoid "Dr. Dr." when a stored name already includes the prefix.
+const drName = (name = "") => (/^dr\.?\s/i.test(name.trim()) ? name.trim() : `Dr. ${name.trim()}`);
+const initials = (name = "") =>
+  name.replace(/^dr\.?\s*/i, "").trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "D";
 
 const today = new Date().toISOString().split("T")[0];
 
@@ -40,6 +49,7 @@ export default function HospitalDetails() {
   const [slot, setSlot] = useState("");
   const [dayError, setDayError] = useState(""); // set when the chosen date is an off-day
   const [reason, setReason] = useState("");
+  const [payMethod, setPayMethod] = useState(""); // "ONLINE" | "CASH"
   const [feedback, setFeedback] = useState({ type: "", msg: "" });
   const [saving, setSaving] = useState(false);
 
@@ -61,6 +71,7 @@ export default function HospitalDetails() {
     setBookingFor(doctor);
     setDate(""); setSlots([]); setSlot(""); setDayError("");
     setReason("");
+    setPayMethod("");
     setFeedback({ type: "", msg: "" });
   };
 
@@ -76,7 +87,7 @@ export default function HospitalDetails() {
     const token = weekdayToken(value);
     if (days.length > 0 && !days.includes(token)) {
       setDayError(
-        `Dr. ${bookingFor.doctorName} doesn't work on ${weekdayName(value)}s. ` +
+        `${drName(bookingFor.doctorName)} doesn't work on ${weekdayName(value)}s. ` +
         `Working days: ${workingDaysLabel(days)}.`
       );
       return;
@@ -97,15 +108,75 @@ export default function HospitalDetails() {
     e.preventDefault();
     if (dayError) return setFeedback({ type: "error", msg: dayError });
     if (!slot) return setFeedback({ type: "error", msg: "Please pick an available time slot." });
+    if (!payMethod) return setFeedback({ type: "error", msg: "Please choose how you'd like to pay." });
     setSaving(true);
     setFeedback({ type: "", msg: "" });
+
+    let booked;
     try {
-      await bookAppointment({ doctorId: bookingFor.doctorId, appointmentDate: date, appointmentTime: slot, reason });
-      setFeedback({ type: "success", msg: `Appointment requested with Dr. ${bookingFor.doctorName} on ${date} at ${slot}.` });
-      setBookingFor(null);
+      const { data } = await bookAppointment({
+        doctorId: bookingFor.doctorId,
+        appointmentDate: date,
+        appointmentTime: slot,
+        reason,
+        paymentMethod: payMethod,
+      });
+      booked = data;
     } catch (err) {
       setFeedback({ type: "error", msg: getErrorMessage(err) });
-    } finally {
+      setSaving(false);
+      return;
+    }
+
+    // Cash: nothing more to do — booked as "Payment pending".
+    if (payMethod === "CASH") {
+      setFeedback({ type: "success", msg: `Appointment booked with ${drName(bookingFor.doctorName)} on ${date} at ${slot}. Pay in cash at your visit.` });
+      setBookingFor(null);
+      setSaving(false);
+      return;
+    }
+
+    // Online: the slot is now reserved; open Razorpay. If anything goes wrong, discard the reservation.
+    try {
+      const ready = await loadRazorpay();
+      if (!ready) throw new Error("gateway");
+      const { data: order } = await createPaymentOrder(booked.appointmentId);
+      const rzp = new window.Razorpay({
+        key: order.keyId,
+        amount: order.amount,
+        currency: order.currency,
+        order_id: order.orderId,
+        name: "Heal-Bit",
+        description: `Consultation with Dr. ${order.doctorName}`,
+        prefill: { name: order.patientName, email: order.patientEmail },
+        theme: { color: "#0f766e" },
+        handler: async (resp) => {
+          try {
+            await verifyPayment(booked.appointmentId, {
+              razorpayOrderId: resp.razorpay_order_id,
+              razorpayPaymentId: resp.razorpay_payment_id,
+              razorpaySignature: resp.razorpay_signature,
+            });
+            setFeedback({ type: "success", msg: `Booked and paid online with ${drName(bookingFor.doctorName)} on ${date} at ${slot}.` });
+            setBookingFor(null);
+          } catch (err) {
+            setFeedback({ type: "error", msg: getErrorMessage(err) });
+          } finally {
+            setSaving(false);
+          }
+        },
+        modal: {
+          ondismiss: async () => {
+            await discardBooking(booked.appointmentId).catch(() => {});
+            setFeedback({ type: "error", msg: "Payment cancelled — the booking was not completed." });
+            setSaving(false);
+          },
+        },
+      });
+      rzp.open();
+    } catch (err) {
+      await discardBooking(booked.appointmentId).catch(() => {});
+      setFeedback({ type: "error", msg: "Could not start the payment. Please try again." });
       setSaving(false);
     }
   };
@@ -135,7 +206,7 @@ export default function HospitalDetails() {
         <Link to="/patient/hospitals" className="btn btn-outline btn-sm">Back to list</Link>
       </div>
 
-      {feedback.msg && (
+      {feedback.msg && !bookingFor && (
         <div className={`alert alert-${feedback.type === "success" ? "success" : "error"}`}>{feedback.msg}</div>
       )}
 
@@ -143,87 +214,130 @@ export default function HospitalDetails() {
       {doctors.length === 0 ? (
         <div className="card empty mt-2">This hospital has not listed any doctors yet.</div>
       ) : (
-        <div className="grid grid-2 mt-2">
+        <div className="doctor-grid mt-2">
           {doctors.map((d) => {
             const tag = doctorStatusTag(d);
             return (
-            <div key={d.doctorId} className="card">
-              <div className="flex-between">
-                <h3>Dr. {d.doctorName}</h3>
-                <span className={`avail-tag ${tag.cls}`}>
-                  <span className="dot-ind" /> {tag.label}
-                </span>
-              </div>
-              <p className="muted mt-2">{d.specialization}{d.qualification ? ` · ${d.qualification}` : ""}</p>
-              <StarRating value={d.averageRating || 0} count={d.ratingCount} size={13} />
-              <p className="mt-2">
-                {d.experience != null ? `${d.experience} yrs experience` : ""}
-                {d.consultationFee != null ? ` · Fee ₹${d.consultationFee}` : ""}
-              </p>
-              {d.workingDays?.length > 0 && (
-                <p className="muted">{workingDaysLabel(d.workingDays)} · {d.startTime}–{d.endTime}</p>
-              )}
-              {d.breaks?.length > 0 && (
-                <p className="muted">Break: {d.breaks.map((b) => `${b.startTime}–${b.endTime}`).join(", ")}</p>
-              )}
-
-              {bookingFor?.doctorId === d.doctorId ? (
-                <form onSubmit={submitBooking} className="mt-3 booking-box">
-                  <div className="field">
-                    <label>Date</label>
-                    <input className={`input${dayError ? " input-error" : ""}`} type="date" min={today} value={date}
-                      onChange={(e) => onPickDate(e.target.value)} required />
-                    {d.workingDays?.length > 0 && (
-                      <p className="hint">Works on {workingDaysLabel(d.workingDays)}.</p>
-                    )}
+              <div key={d.doctorId} className="card doctor-card">
+                <div className="doctor-card-head">
+                  <span className="doctor-avatar">{initials(d.doctorName)}</span>
+                  <div className="doctor-head-text">
+                    <h3>{drName(d.doctorName)}</h3>
+                    <p className="doctor-spec">{d.specialization}{d.qualification ? ` · ${d.qualification}` : ""}</p>
                   </div>
+                  <span className={`avail-tag ${tag.cls}`}>
+                    <span className="dot-ind" /> {tag.label}
+                  </span>
+                </div>
 
-                  {dayError && <p className="err">{dayError}</p>}
+                <StarRating value={d.averageRating || 0} count={d.ratingCount} size={14} />
 
-                  {date && !dayError && (
-                    <div className="field">
-                      <label>Available 30-minute slots</label>
-                      {slotsLoading ? (
-                        <p className="muted">Checking availability…</p>
-                      ) : slots.length === 0 ? (
-                        <p className="muted">No open slots on this day. Try another date.</p>
-                      ) : (
-                        <div className="slot-grid">
-                          {slots.map((t) => (
-                            <button type="button" key={t}
-                              className={`slot-chip${slot === t ? " active" : ""}`}
-                              onClick={() => setSlot(t)}>
-                              {t}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                <div className="doctor-facts">
+                  <span>{d.experience != null ? `${d.experience} yrs experience` : "Experience —"}</span>
+                  <span className="doctor-fee">{d.consultationFee != null ? `₹${d.consultationFee}` : "—"}</span>
+                </div>
+
+                <div className="doctor-schedule">
+                  {d.workingDays?.length > 0 ? (
+                    <p><Icon name="calendar" size={14} /> {workingDaysLabel(d.workingDays)} · {d.startTime}–{d.endTime}</p>
+                  ) : (
+                    <p className="muted"><Icon name="calendar" size={14} /> Schedule not set</p>
                   )}
+                  {d.breaks?.length > 0 && (
+                    <p><Icon name="clock" size={14} /> Break {d.breaks.map((b) => `${b.startTime}–${b.endTime}`).join(", ")}</p>
+                  )}
+                </div>
 
-                  <div className="field">
-                    <label>Reason</label>
-                    <textarea value={reason} onChange={(e) => setReason(e.target.value)} required />
-                  </div>
-                  <div className="actions">
-                    <button className="btn btn-primary btn-sm" disabled={saving || !slot || !!dayError}>
-                      {saving ? "Booking…" : "Confirm booking"}
-                    </button>
-                    <button type="button" className="btn btn-outline btn-sm" onClick={() => setBookingFor(null)}>Cancel</button>
-                  </div>
-                </form>
-              ) : (
-                <div className="actions mt-3">
-                  <button className="btn btn-primary btn-sm" onClick={() => openBooking(d)} disabled={!d.available}>
+                <div className="doctor-card-foot">
+                  <button className="btn btn-primary btn-block" onClick={() => openBooking(d)} disabled={!d.available}>
                     {d.available ? "Book appointment" : "Not accepting now"}
                   </button>
                 </div>
-              )}
-            </div>
+              </div>
             );
           })}
         </div>
       )}
+
+      <Modal
+        open={!!bookingFor}
+        onClose={() => setBookingFor(null)}
+        title={bookingFor ? `Book · ${drName(bookingFor.doctorName)}` : ""}
+      >
+        {bookingFor && (
+          <form onSubmit={submitBooking}>
+            {feedback.msg && feedback.type === "error" && (
+              <div className="alert alert-error">{feedback.msg}</div>
+            )}
+            <p className="muted" style={{ margin: "0 0 14px" }}>
+              {bookingFor.specialization}
+              {bookingFor.consultationFee != null ? ` · Fee ₹${bookingFor.consultationFee}` : ""}
+            </p>
+
+            <div className="field">
+              <label>Date</label>
+              <input className={`input${dayError ? " input-error" : ""}`} type="date" min={today} value={date}
+                onChange={(e) => onPickDate(e.target.value)} required />
+              {bookingFor.workingDays?.length > 0 && (
+                <p className="hint">Works on {workingDaysLabel(bookingFor.workingDays)}.</p>
+              )}
+            </div>
+
+            {dayError && <p className="err">{dayError}</p>}
+
+            {date && !dayError && (
+              <div className="field">
+                <label>Available 30-minute slots</label>
+                {slotsLoading ? (
+                  <p className="muted">Checking availability…</p>
+                ) : slots.length === 0 ? (
+                  <p className="muted">No open slots on this day. Try another date.</p>
+                ) : (
+                  <div className="slot-grid">
+                    {slots.map((t) => (
+                      <button type="button" key={t}
+                        className={`slot-chip${slot === t ? " active" : ""}`}
+                        onClick={() => setSlot(t)}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="field">
+              <label>Reason</label>
+              <textarea value={reason} onChange={(e) => setReason(e.target.value)} required />
+            </div>
+
+            <div className="field">
+              <label>Payment</label>
+              <div className="pay-method">
+                <button type="button" className={`pay-opt${payMethod === "ONLINE" ? " active" : ""}`} onClick={() => setPayMethod("ONLINE")}>
+                  <span className="pay-opt-title">Pay now · online</span>
+                  <span className="pay-opt-sub">{bookingFor.consultationFee != null ? `₹${bookingFor.consultationFee} via Razorpay` : "via Razorpay"}</span>
+                </button>
+                <button type="button" className={`pay-opt${payMethod === "CASH" ? " active" : ""}`} onClick={() => setPayMethod("CASH")}>
+                  <span className="pay-opt-title">Pay in cash</span>
+                  <span className="pay-opt-sub">at the clinic on your visit</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="actions mt-3">
+              <button className="btn btn-primary" disabled={saving || !slot || !!dayError || !payMethod}>
+                {saving
+                  ? "Processing…"
+                  : payMethod === "ONLINE"
+                  ? `Pay${bookingFor.consultationFee != null ? ` ₹${bookingFor.consultationFee}` : ""} & book`
+                  : "Book appointment"}
+              </button>
+              <button type="button" className="btn btn-outline" onClick={() => setBookingFor(null)}>Cancel</button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 }

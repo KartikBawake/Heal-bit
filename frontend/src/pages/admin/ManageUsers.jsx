@@ -3,7 +3,7 @@ import { getAllUsers, deleteUser } from "../../api/adminApi";
 import { getErrorMessage } from "../../utils/error";
 import Pagination from "../../components/Pagination";
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 12;
 
 export default function ManageUsers() {
   const [users, setUsers] = useState([]);

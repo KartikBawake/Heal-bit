@@ -47,3 +47,7 @@ export const STATUS_COLORS = {
 // Google reCAPTCHA v2 site key (override with VITE_RECAPTCHA_SITE_KEY in an .env file).
 export const RECAPTCHA_SITE_KEY =
   import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LeYHGgtAAAAAKArqcFg-70uSKuR34X_E5yN-YEr";
+
+// Razorpay public key id (override with VITE_RAZORPAY_KEY_ID in an .env file).
+export const RAZORPAY_KEY_ID =
+  import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_TLIkxqiognIgp2";

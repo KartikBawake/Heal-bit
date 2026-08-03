@@ -446,7 +446,6 @@ a.contact-row:hover { text-decoration: none; border-color: var(--primary); backg
 /* home role note + 4-up grid */
 .role-grid.four { grid-template-columns: repeat(4, 1fr); }
 .role-note { font-size: 0.82rem; color: var(--primary-700); background: var(--primary-050); border-radius: 8px; padding: 6px 10px; margin: 0 0 14px !important; }
-.hospital-card .badge { align-self: flex-start; }
 
 /* ============================================================
    Responsive
@@ -483,10 +482,6 @@ a.contact-row:hover { text-decoration: none; border-color: var(--primary); backg
 .img-picker-actions { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .img-picker-actions .hint { margin: 0; }
 
-.hospital-thumb { width: calc(100% + 48px); height: 150px; margin: -24px -24px 16px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; overflow: hidden; border-bottom: 1px solid var(--border-soft); }
-.hospital-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.hospital-thumb-fallback { color: var(--primary-700); opacity: 0.5; }
-.hospital-card { overflow: hidden; }
 
 .hospital-banner { width: 100%; height: 220px; border-radius: var(--r); overflow: hidden; margin-bottom: 20px; box-shadow: var(--shadow-sm); }
 .hospital-banner img { width: 100%; height: 100%; object-fit: cover; }
@@ -528,3 +523,42 @@ a.contact-row:hover { text-decoration: none; border-color: var(--primary); backg
 .icon-btn.danger { color: var(--red); border-color: #f0c9c9; }
 .icon-btn.danger:hover { background: #fdf0f0; }
 .icon-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Payment method chooser (booking form) */
+.pay-method { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pay-opt { display: flex; flex-direction: column; gap: 3px; text-align: left; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface-2); cursor: pointer; font: inherit; transition: border-color 0.14s, background 0.14s, box-shadow 0.14s; }
+.pay-opt:hover { border-color: var(--primary); }
+.pay-opt.active { border-color: var(--primary); background: var(--primary-050); box-shadow: 0 0 0 3px var(--ring); }
+.pay-opt-title { font-weight: 600; color: var(--ink); font-size: 0.9rem; }
+.pay-opt-sub { color: var(--muted); font-size: 0.78rem; }
+@media (max-width: 520px) { .pay-method { grid-template-columns: 1fr; } }
+
+/* Keep tall modals (e.g. the booking form) within the viewport */
+.modal-body { max-height: calc(90vh - 72px); overflow-y: auto; }
+
+/* ---------- Hospital cards (browse) ---------- */
+.hospital-card { overflow: hidden; }
+.hospital-card .badge { align-self: flex-start; }
+.hospital-thumb { width: calc(100% + 48px); height: 150px; margin: -24px -24px 16px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; overflow: hidden; border-bottom: 1px solid var(--border-soft); }
+.hospital-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.hospital-thumb-fallback { color: var(--primary-700); opacity: 0.5; }
+
+/* ============================================================
+   Doctor cards (hospital details page)
+   ============================================================ */
+.doctor-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; align-items: stretch; }
+.doctor-card { display: flex; flex-direction: column; min-width: 0; gap: 13px; padding: 20px 22px; transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease; }
+.doctor-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--primary); }
+.doctor-card-head { display: flex; align-items: flex-start; gap: 12px; }
+.doctor-avatar { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--primary-050); color: var(--primary-700); font-weight: 700; font-size: 0.95rem; letter-spacing: 0.02em; }
+.doctor-head-text { flex: 1; min-width: 0; }
+.doctor-head-text h3 { font-size: 1.05rem; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doctor-spec { color: var(--muted); font-size: 0.85rem; margin: 3px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doctor-card-head .avail-tag { flex: 0 0 auto; }
+.doctor-facts { display: flex; align-items: baseline; gap: 10px; font-size: 0.9rem; color: var(--ink); }
+.doctor-fee { margin-left: auto; font-family: "Fraunces", serif; font-weight: 600; font-size: 1.15rem; color: var(--primary-700); }
+.doctor-schedule { display: flex; flex-direction: column; gap: 5px; }
+.doctor-schedule p { margin: 0; font-size: 0.83rem; color: var(--muted); display: flex; align-items: center; gap: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doctor-schedule p svg { flex: 0 0 auto; color: var(--primary); }
+.doctor-card-foot { margin-top: auto; padding-top: 2px; }
+@media (max-width: 760px) { .doctor-grid { grid-template-columns: 1fr; } }

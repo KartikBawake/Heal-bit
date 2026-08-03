@@ -6,9 +6,13 @@ import {
   adminDeleteSpecialization,
 } from "../../api/specializationApi";
 import { getErrorMessage } from "../../utils/error";
+import Pagination from "../../components/Pagination";
+
+const PAGE_SIZE = 12;
 
 export default function ManageSpecializations() {
   const [items, setItems] = useState([]);
+  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [newName, setNewName] = useState("");
@@ -29,6 +33,10 @@ export default function ManageSpecializations() {
   };
 
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(items.length / PAGE_SIZE) - 1);
+    if (page > maxPage) setPage(maxPage);
+  }, [items, page]);
 
   const onAdd = async (e) => {
     e.preventDefault();
@@ -123,7 +131,7 @@ export default function ManageSpecializations() {
                 <tr><th>Name</th><th></th></tr>
               </thead>
               <tbody>
-                {items.map((item) => (
+                {items.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE).map((item) => (
                   <tr key={item.specializationId}>
                     <td>
                       {editingId === item.specializationId ? (
@@ -156,6 +164,7 @@ export default function ManageSpecializations() {
                 ))}
               </tbody>
             </table>
+            <Pagination page={page} totalPages={Math.ceil(items.length / PAGE_SIZE)} onChange={setPage} />
           </div>
         )}
       </div>

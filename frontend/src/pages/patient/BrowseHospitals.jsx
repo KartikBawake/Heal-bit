@@ -6,7 +6,7 @@ import Icon from "../../components/icons";
 import Pagination from "../../components/Pagination";
 import StarRating from "../../components/StarRating";
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 12;
 
 export default function BrowseHospitals() {
   const [hospitals, setHospitals] = useState([]);

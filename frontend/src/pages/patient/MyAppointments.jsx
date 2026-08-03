@@ -3,10 +3,11 @@ import { listAppointments, cancelAppointment } from "../../api/appointmentApi";
 import { rateDoctor, rateHospital } from "../../api/ratingApi";
 import { getErrorMessage } from "../../utils/error";
 import StatusBadge from "../../components/StatusBadge";
+import PaymentBadge from "../../components/PaymentBadge";
 import Pagination from "../../components/Pagination";
 import StarRating from "../../components/StarRating";
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 12;
 
 export default function MyAppointments() {
   const [items, setItems] = useState([]);
@@ -107,7 +108,7 @@ export default function MyAppointments() {
           <table>
             <thead>
               <tr>
-                <th>Hospital</th><th>Doctor</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th><th></th>
+                <th>Hospital</th><th>Doctor</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th><th>Payment</th><th></th>
               </tr>
             </thead>
             <tbody>
@@ -120,6 +121,7 @@ export default function MyAppointments() {
                     <td>{a.appointmentTime}</td>
                     <td>{a.reason}</td>
                     <td><StatusBadge status={a.status} /></td>
+                    <td><PaymentBadge status={a.paymentStatus} method={a.paymentMethod} /></td>
                     <td>
                       <div className="actions">
                         {cancellable(a.status) && (
@@ -135,7 +137,7 @@ export default function MyAppointments() {
                   </tr>
                   {ratingFor === a.appointmentId && (
                     <tr>
-                      <td colSpan={7}>
+                      <td colSpan={8}>
                         <div className="card mt-2" style={{ maxWidth: 480 }}>
                           <h3>Rate your visit</h3>
                           {ratingFeedback.msg && (

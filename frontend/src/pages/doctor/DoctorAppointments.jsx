@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { listAppointments, updateAppointmentStatus } from "../../api/appointmentApi";
 import { getErrorMessage } from "../../utils/error";
 import StatusBadge from "../../components/StatusBadge";
+import PaymentBadge from "../../components/PaymentBadge";
 import Pagination from "../../components/Pagination";
 
 // Documents are viewable for patients whose appointment is live (not cancelled/rejected).
 const DOC_STATUSES = ["PENDING", "CONFIRMED", "COMPLETED"];
 
 const FILTERS = ["ALL", "PENDING", "CONFIRMED", "COMPLETED", "REJECTED", "CANCELLED"];
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 12;
 
 export default function DoctorAppointments() {
   const [items, setItems] = useState([]);
@@ -84,7 +85,7 @@ export default function DoctorAppointments() {
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>Patient</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th><th>Actions</th></tr>
+              <tr><th>Patient</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th><th>Payment</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {shown.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE).map((a) => (
@@ -94,6 +95,7 @@ export default function DoctorAppointments() {
                   <td>{a.appointmentTime}</td>
                   <td>{a.reason}</td>
                   <td><StatusBadge status={a.status} /></td>
+                  <td><PaymentBadge status={a.paymentStatus} method={a.paymentMethod} /></td>
                   <td>
                     <div className="actions">
                       {a.status === "PENDING" && (

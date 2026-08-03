@@ -4,7 +4,7 @@ import { getErrorMessage } from "../../utils/error";
 import StatusBadge from "../../components/StatusBadge";
 import Pagination from "../../components/Pagination";
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 12;
 
 const FILTERS = [
   { key: "all", label: "All" },

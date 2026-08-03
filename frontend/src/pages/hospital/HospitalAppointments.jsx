@@ -5,7 +5,7 @@ import StatusBadge from "../../components/StatusBadge";
 import Pagination from "../../components/Pagination";
 
 const FILTERS = ["ALL", "PENDING", "CONFIRMED", "COMPLETED", "REJECTED", "CANCELLED"];
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 12;
 
 // Read-only for hospitals: appointments are confirmed/rejected/completed by the doctors themselves.
 export default function HospitalAppointments() {

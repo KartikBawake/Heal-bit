@@ -9,7 +9,7 @@ import BreakEditor from "../../components/BreakEditor";
 import StarRating from "../../components/StarRating";
 import { doctorStatusTag } from "../../utils/doctorStatus";
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 12;
 
 const empty = {
   doctorId: null, doctorName: "", email: "", password: "", specialization: "",

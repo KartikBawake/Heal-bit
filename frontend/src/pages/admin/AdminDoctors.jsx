@@ -3,7 +3,9 @@ import { listDoctors } from "../../api/doctorApi";
 import { getSpecializations } from "../../api/specializationApi";
 import { getErrorMessage } from "../../utils/error";
 import { WEEK_DAYS } from "../../constants";
+import Pagination from "../../components/Pagination";
 
+const PAGE_SIZE = 12;
 const labelFor = (tok) => WEEK_DAYS.find((d) => d.value === tok)?.label || tok;
 const daysLabel = (arr) => (arr && arr.length ? arr.map(labelFor).join(", ") : "Not set");
 
@@ -35,6 +37,7 @@ export default function AdminDoctors() {
   const [spec, setSpec] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     Promise.all([listDoctors(), getSpecializations()])
@@ -55,6 +58,12 @@ export default function AdminDoctors() {
         .filter(Boolean).some((x) => x.toLowerCase().includes(term));
     });
   }, [doctors, q, spec]);
+
+  useEffect(() => { setPage(0); }, [q, spec]);
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(shown.length / PAGE_SIZE) - 1);
+    if (page > maxPage) setPage(maxPage);
+  }, [shown, page]);
 
   return (
     <div>
@@ -90,7 +99,7 @@ export default function AdminDoctors() {
                 </tr>
               </thead>
               <tbody>
-                {shown.map((d) => (
+                {shown.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE).map((d) => (
                   <tr key={d.doctorId}>
                     <td>
                       <strong>Dr. {d.doctorName}</strong>
@@ -110,6 +119,7 @@ export default function AdminDoctors() {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={Math.ceil(shown.length / PAGE_SIZE)} onChange={setPage} />
         </>
       )}
     </div>
