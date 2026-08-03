@@ -51,6 +51,15 @@ public class Appointment {
     @Column(length = 20)
     private PaymentMethod paymentMethod;
 
+    /**
+     * Guarantees one live appointment per doctor/date/time at the DATABASE level.
+     * Set while the appointment holds the slot, and cleared to NULL once it is
+     * cancelled / rejected / expired (MySQL allows many NULLs in a unique index,
+     * so a released slot becomes bookable again).
+     */
+    @Column(name = "slot_key", unique = true, length = 64)
+    private String slotKey;
+
     private Double paymentAmount;
     private String razorpayOrderId;
     private String razorpayPaymentId;
@@ -101,6 +110,26 @@ public class Appointment {
 
     public PaymentMethod getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public String getSlotKey() { return slotKey; }
+    public void setSlotKey(String slotKey) { this.slotKey = slotKey; }
+
+    /** Canonical slot identity used by the unique index. */
+    public static String slotKeyFor(Long doctorId, LocalDate date, LocalTime time) {
+        return doctorId + "|" + date + "|" + time;
+    }
+
+    /** Re-claims the slot for this appointment. */
+    public void claimSlot() {
+        this.slotKey = slotKeyFor(
+                this.doctor != null ? this.doctor.getDoctorId() : null,
+                this.appointmentDate, this.appointmentTime);
+    }
+
+    /** Releases the slot so another patient can book it. */
+    public void releaseSlot() {
+        this.slotKey = null;
+    }
 
     public Double getPaymentAmount() { return paymentAmount; }
     public void setPaymentAmount(Double paymentAmount) { this.paymentAmount = paymentAmount; }

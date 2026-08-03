@@ -124,6 +124,7 @@ public class AdminService {
         dto.setCompletedAppointments(appointmentRepository.countByStatus(AppointmentStatus.COMPLETED));
         dto.setRejectedAppointments(appointmentRepository.countByStatus(AppointmentStatus.REJECTED));
         dto.setCancelledAppointments(appointmentRepository.countByStatus(AppointmentStatus.CANCELLED));
+        dto.setExpiredAppointments(appointmentRepository.countByStatus(AppointmentStatus.EXPIRED));
 
         // Per-hospital performance.
         List<Hospital> hospitals = hospitalRepository.findAllByDeletedFalse();

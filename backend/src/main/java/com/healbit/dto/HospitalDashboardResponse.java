@@ -14,6 +14,7 @@ public class HospitalDashboardResponse {
     private long completedAppointments;
     private long rejectedAppointments;
     private long cancelledAppointments;
+    private long expiredAppointments;
 
     // Appointments handled per doctor (name -> count) for the bar chart.
     private List<DoctorLoad> doctorLoads;
@@ -68,6 +69,9 @@ public class HospitalDashboardResponse {
 
     public long getCancelledAppointments() { return cancelledAppointments; }
     public void setCancelledAppointments(long cancelledAppointments) { this.cancelledAppointments = cancelledAppointments; }
+
+    public long getExpiredAppointments() { return expiredAppointments; }
+    public void setExpiredAppointments(long expiredAppointments) { this.expiredAppointments = expiredAppointments; }
 
     public List<DoctorLoad> getDoctorLoads() { return doctorLoads; }
     public void setDoctorLoads(List<DoctorLoad> doctorLoads) { this.doctorLoads = doctorLoads; }

@@ -62,6 +62,7 @@ public class SecurityConfig {
                 .requestMatchers("/patients/**").hasRole("PATIENT")
                 .requestMatchers("/payments/**").hasRole("PATIENT")
                 .requestMatchers(HttpMethod.POST, "/appointments").hasRole("PATIENT")
+                .requestMatchers(HttpMethod.PUT, "/appointments/*/reschedule").hasRole("PATIENT")
                 .requestMatchers(HttpMethod.DELETE, "/appointments/**").hasRole("PATIENT")
 
                 // Hospital manages its own doctors and profile

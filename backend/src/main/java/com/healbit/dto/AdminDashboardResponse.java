@@ -16,6 +16,7 @@ public class AdminDashboardResponse {
     private long completedAppointments;
     private long rejectedAppointments;
     private long cancelledAppointments;
+    private long expiredAppointments;
 
     // Highest-appointment hospitals (by total booked appointments).
     private List<HospitalPerformance> topHospitalsByAppointments;
@@ -61,6 +62,9 @@ public class AdminDashboardResponse {
 
     public long getCancelledAppointments() { return cancelledAppointments; }
     public void setCancelledAppointments(long cancelledAppointments) { this.cancelledAppointments = cancelledAppointments; }
+
+    public long getExpiredAppointments() { return expiredAppointments; }
+    public void setExpiredAppointments(long expiredAppointments) { this.expiredAppointments = expiredAppointments; }
 
     public List<HospitalPerformance> getTopHospitalsByAppointments() { return topHospitalsByAppointments; }
     public void setTopHospitalsByAppointments(List<HospitalPerformance> v) { this.topHospitalsByAppointments = v; }

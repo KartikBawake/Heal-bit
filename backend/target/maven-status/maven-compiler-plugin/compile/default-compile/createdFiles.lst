@@ -47,8 +47,10 @@ com\healbit\dto\AppointmentRequest.class
 com\healbit\service\RatingService.class
 com\healbit\repository\AdminRepository.class
 com\healbit\entity\Appointment.class
+com\healbit\service\AppointmentMaintenanceService.class
 com\healbit\service\PaymentService.class
 com\healbit\controller\PaymentController.class
+com\healbit\dto\RescheduleRequest.class
 com\healbit\controller\DoctorPatientDocumentController.class
 com\healbit\service\MetricsUtil.class
 com\healbit\entity\Specialization.class

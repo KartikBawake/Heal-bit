@@ -2,10 +2,13 @@ package com.healbit.repository;
 
 import com.healbit.entity.Appointment;
 import com.healbit.entity.AppointmentStatus;
+import com.healbit.entity.PaymentMethod;
+import com.healbit.entity.PaymentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Collection;
 import java.util.List;
@@ -41,6 +44,29 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     boolean existsByDoctor_DoctorIdAndPatient_PatientIdAndStatusIn(
             Long doctorId, Long patientId, Collection<AppointmentStatus> statuses);
+
+    // --- Booking guards -------------------------------------------------
+    /** Does this patient already hold ANY live appointment at this exact date+time? */
+    boolean existsByPatient_PatientIdAndAppointmentDateAndAppointmentTimeAndStatusIn(
+            Long patientId, LocalDate appointmentDate, LocalTime appointmentTime,
+            Collection<AppointmentStatus> statuses);
+
+    /** How many live appointments does this patient currently hold? */
+    long countByPatient_PatientIdAndStatusIn(Long patientId, Collection<AppointmentStatus> statuses);
+
+    // --- Maintenance / cleanup -------------------------------------------
+    /** Unpaid online holds created before a cut-off (abandoned checkouts). */
+    List<Appointment> findByStatusAndPaymentStatusAndPaymentMethodAndCreatedAtBefore(
+            AppointmentStatus status, PaymentStatus paymentStatus,
+            PaymentMethod paymentMethod, LocalDateTime cutoff);
+
+    /** Appointments still in a given status on or before a date (used to expire stale ones). */
+    List<Appointment> findByStatusAndAppointmentDateLessThanEqual(
+            AppointmentStatus status, LocalDate date);
+
+    /** Upcoming live appointments for a doctor (schedule-change conflicts, doctor removal). */
+    List<Appointment> findByDoctor_DoctorIdAndStatusInAndAppointmentDateGreaterThanEqual(
+            Long doctorId, Collection<AppointmentStatus> statuses, LocalDate fromDate);
 
     long count();
 

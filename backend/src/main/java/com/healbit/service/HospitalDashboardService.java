@@ -57,6 +57,7 @@ public class HospitalDashboardService {
         dto.setCompletedAppointments(count(appts, AppointmentStatus.COMPLETED));
         dto.setRejectedAppointments(count(appts, AppointmentStatus.REJECTED));
         dto.setCancelledAppointments(count(appts, AppointmentStatus.CANCELLED));
+        dto.setExpiredAppointments(count(appts, AppointmentStatus.EXPIRED));
 
         List<HospitalDashboardResponse.DoctorLoad> loads = new ArrayList<>();
         for (Doctor d : doctors) {

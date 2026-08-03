@@ -41,17 +41,20 @@ public class DoctorService {
     private final AppointmentRepository appointmentRepository;
     private final DoctorRatingRepository doctorRatingRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AppointmentService appointmentService;
 
     public DoctorService(DoctorRepository doctorRepository,
                          HospitalRepository hospitalRepository,
                          AppointmentRepository appointmentRepository,
                          DoctorRatingRepository doctorRatingRepository,
-                         PasswordEncoder passwordEncoder) {
+                         PasswordEncoder passwordEncoder,
+                         AppointmentService appointmentService) {
         this.doctorRepository = doctorRepository;
         this.hospitalRepository = hospitalRepository;
         this.appointmentRepository = appointmentRepository;
         this.doctorRatingRepository = doctorRatingRepository;
         this.passwordEncoder = passwordEncoder;
+        this.appointmentService = appointmentService;
     }
 
     /** Browse doctors. If hospitalId is provided, list that hospital's doctors; otherwise list all.
@@ -60,7 +63,16 @@ public class DoctorService {
         List<Doctor> doctors = (hospitalId != null)
                 ? doctorRepository.findByHospital_HospitalIdAndDeletedFalse(hospitalId)
                 : doctorRepository.findAllByDeletedFalse();
-        return doctors.stream().map(this::toResponse).sorted(byRatingDesc()).collect(Collectors.toList());
+        // Public browsing must only surface doctors of approved, live hospitals.
+        return doctors.stream()
+                .filter(DoctorService::hospitalIsLive)
+                .map(this::toResponse).sorted(byRatingDesc()).collect(Collectors.toList());
+    }
+
+    /** True when the doctor's hospital is approved and still on the platform. */
+    static boolean hospitalIsLive(Doctor d) {
+        Hospital h = d.getHospital();
+        return h != null && !h.isDeleted() && h.getStatus() == com.healbit.entity.HospitalStatus.ACTIVE;
     }
 
     /** A hospital lists only its own doctors, highest rated first. */
@@ -125,6 +137,7 @@ public class DoctorService {
             doctor.setPassword(passwordEncoder.encode(request.getPassword()));
         }
         applyProfile(doctor, request);
+        requireNoStrandedAppointments(doctor);
 
         return toResponse(doctorRepository.save(doctor));
     }
@@ -132,6 +145,13 @@ public class DoctorService {
     public void deleteDoctor(Long hospitalId, Long doctorId) {
         Doctor doctor = findDoctor(doctorId);
         ensureOwnership(doctor, hospitalId);
+
+        // Don't strand patients: cancel every upcoming appointment (refunding paid ones)
+        // so the slots are released and the patients see a clear CANCELLED status.
+        for (Appointment a : upcomingLiveAppointments(doctorId)) {
+            appointmentService.cancelAdministratively(a);
+        }
+
         doctor.setDeleted(true);
         doctorRepository.save(doctor);
     }
@@ -158,7 +178,45 @@ public class DoctorService {
             validateBreaks(request.getBreaks(), doctor.getStartTime(), doctor.getEndTime());
             doctor.setBreaks(ScheduleUtil.toBreaksString(request.getBreaks()));
         }
+        requireNoStrandedAppointments(doctor);
         return toResponse(doctorRepository.save(doctor));
+    }
+
+    /** Upcoming appointments that still hold a slot for this doctor. */
+    private List<Appointment> upcomingLiveAppointments(Long doctorId) {
+        return appointmentRepository
+                .findByDoctor_DoctorIdAndStatusInAndAppointmentDateGreaterThanEqual(doctorId, LIVE, LocalDate.now());
+    }
+
+    /**
+     * Refuses a schedule change that would leave already-booked appointments outside the
+     * doctor's new working days / hours / breaks. The doctor must reject or complete those
+     * first, so no patient is silently left with an impossible appointment.
+     */
+    private void requireNoStrandedAppointments(Doctor doctor) {
+        if (doctor.getDoctorId() == null) return;
+        Set<DayOfWeek> days = ScheduleUtil.parseWorkingDays(doctor.getWorkingDays());
+        List<BreakPeriod> breaks = ScheduleUtil.parseBreaks(doctor.getBreaks());
+        List<LocalTime> slots = ScheduleUtil.generateSlots(doctor.getStartTime(), doctor.getEndTime(), breaks);
+
+        List<Appointment> stranded = new ArrayList<>();
+        for (Appointment a : upcomingLiveAppointments(doctor.getDoctorId())) {
+            boolean dayOk = days.contains(a.getAppointmentDate().getDayOfWeek());
+            boolean timeOk = slots.contains(a.getAppointmentTime());
+            if (!dayOk || !timeOk) stranded.add(a);
+        }
+        if (stranded.isEmpty()) return;
+
+        String examples = stranded.stream()
+                .sorted(Comparator.comparing(Appointment::getAppointmentDate)
+                        .thenComparing(Appointment::getAppointmentTime))
+                .limit(3)
+                .map(a -> a.getAppointmentDate() + " at " + a.getAppointmentTime())
+                .collect(Collectors.joining(", "));
+        throw new com.healbit.exception.AppointmentConflictException(
+                "This schedule would leave " + stranded.size() + " booked appointment(s) outside your working hours ("
+                        + examples + (stranded.size() > 3 ? ", …" : "")
+                        + "). Please reject or complete them first, or ask the patient to reschedule.");
     }
 
     // ---------------- Slots ----------------
@@ -167,7 +225,8 @@ public class DoctorService {
     public List<String> getAvailableSlots(Long doctorId, LocalDate date) {
         Doctor doctor = findDoctor(doctorId);
         List<String> out = new ArrayList<>();
-        if (date == null || date.isBefore(LocalDate.now()) || !ScheduleUtil.scheduleConfigured(doctor)) {
+        if (date == null || date.isBefore(LocalDate.now())
+                || !hospitalIsLive(doctor) || !ScheduleUtil.scheduleConfigured(doctor)) {
             return out;
         }
         Set<DayOfWeek> days = ScheduleUtil.parseWorkingDays(doctor.getWorkingDays());

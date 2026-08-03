@@ -38,6 +38,7 @@ export default function AdminDashboard() {
     { name: "Completed", value: s.completedAppointments, color: STATUS_COLORS.COMPLETED },
     { name: "Rejected", value: s.rejectedAppointments, color: STATUS_COLORS.REJECTED },
     { name: "Cancelled", value: s.cancelledAppointments, color: STATUS_COLORS.CANCELLED },
+    { name: "Expired", value: s.expiredAppointments, color: STATUS_COLORS.EXPIRED },
   ];
 
   const hospitalStatus = [

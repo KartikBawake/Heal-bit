@@ -243,13 +243,15 @@ tr:last-child td { border-bottom: none; }
 .section-head h2 { font-size: 1.7rem; }
 .section-head p { margin-top: 6px; }
 
-.role-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-.role-card { background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--r); padding: 26px; box-shadow: var(--shadow-sm); transition: transform 0.14s ease, box-shadow 0.14s ease; }
+.role-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch; }
+/* Flex column + margin-top:auto on the buttons keeps every card's actions on the
+   same baseline, however long the description is. */
+.role-card { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--r); padding: 26px; box-shadow: var(--shadow-sm); transition: transform 0.14s ease, box-shadow 0.14s ease; }
 .role-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
 .role-icon { display: inline-flex; align-items: center; justify-content: center; width: 50px; height: 50px; border-radius: 14px; background: var(--primary-050); color: var(--primary-700); margin-bottom: 14px; }
 .role-card h3 { margin-bottom: 6px; }
 .role-card p { color: var(--muted); font-size: 0.92rem; margin: 0 0 18px; }
-.role-card .links { display: flex; gap: 10px; flex-wrap: wrap; }
+.role-card .links { display: flex; gap: 10px; flex-wrap: wrap; margin-top: auto; }
 
 .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
 .step { background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--r); padding: 24px; box-shadow: var(--shadow-sm); position: relative; }
@@ -450,7 +452,6 @@ a.contact-row:hover { text-decoration: none; border-color: var(--primary); backg
 
 /* home role note + 4-up grid */
 .role-grid.four { grid-template-columns: repeat(4, 1fr); }
-.role-note { font-size: 0.82rem; color: var(--primary-700); background: var(--primary-050); border-radius: 8px; padding: 6px 10px; margin: 0 0 14px !important; }
 
 /* ============================================================
    Responsive
@@ -677,3 +678,6 @@ a.contact-row:hover { text-decoration: none; border-color: var(--primary); backg
   .trust-band { padding: 24px; }
   .cta-band { padding: 40px 22px; }
 }
+
+/* Expired = the doctor never actioned it before the visit time passed */
+.badge-expired { background: #f1f3f2; color: var(--muted); }

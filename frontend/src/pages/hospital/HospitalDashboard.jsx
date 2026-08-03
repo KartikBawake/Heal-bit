@@ -32,6 +32,7 @@ export default function HospitalDashboard() {
     { name: "Completed", value: d.completedAppointments, color: STATUS_COLORS.COMPLETED },
     { name: "Rejected", value: d.rejectedAppointments, color: STATUS_COLORS.REJECTED },
     { name: "Cancelled", value: d.cancelledAppointments, color: STATUS_COLORS.CANCELLED },
+    { name: "Expired", value: d.expiredAppointments, color: STATUS_COLORS.EXPIRED },
   ];
 
   const loads = (d.doctorLoads || [])

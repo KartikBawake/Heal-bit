@@ -5,6 +5,7 @@ import com.healbit.dto.ApiResponse;
 import com.healbit.dto.AppointmentRequest;
 import com.healbit.dto.AppointmentResponse;
 import com.healbit.dto.AppointmentStatusUpdateRequest;
+import com.healbit.dto.RescheduleRequest;
 import com.healbit.service.AppointmentService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -57,6 +58,15 @@ public class AppointmentController {
             @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody AppointmentStatusUpdateRequest request) {
         return ResponseEntity.ok(appointmentService.updateStatusByDoctor(principal.getId(), request));
+    }
+
+    /** Patient moves an existing appointment to another slot with the same doctor. */
+    @PutMapping("/{id}/reschedule")
+    public ResponseEntity<AppointmentResponse> reschedule(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long id,
+            @Valid @RequestBody RescheduleRequest request) {
+        return ResponseEntity.ok(appointmentService.reschedule(principal.getId(), id, request));
     }
 
     /** Patient discards an unpaid booking (e.g. abandoned online payment) to free the slot. */

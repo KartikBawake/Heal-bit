@@ -3,6 +3,7 @@ package com.healbit.service;
 import com.healbit.dto.AppointmentRequest;
 import com.healbit.dto.AppointmentResponse;
 import com.healbit.dto.AppointmentStatusUpdateRequest;
+import com.healbit.dto.RescheduleRequest;
 import com.healbit.entity.*;
 import com.healbit.exception.AppointmentConflictException;
 import com.healbit.exception.ResourceNotFoundException;
@@ -10,6 +11,8 @@ import com.healbit.exception.UnauthorizedException;
 import com.healbit.repository.AppointmentRepository;
 import com.healbit.repository.DoctorRepository;
 import com.healbit.repository.PatientRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,8 +30,22 @@ import java.util.stream.Collectors;
 @Service
 public class AppointmentService {
 
+    /** Statuses that actively hold a slot. */
     private static final Set<AppointmentStatus> LIVE =
             EnumSet.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED);
+
+    /** Statuses that can no longer be changed by anyone. */
+    private static final Set<AppointmentStatus> FINAL_STATES = EnumSet.of(
+            AppointmentStatus.COMPLETED, AppointmentStatus.CANCELLED,
+            AppointmentStatus.REJECTED, AppointmentStatus.EXPIRED);
+
+    /** Guards against one account hoarding a doctor's calendar. */
+    @Value("${healbit.booking.max-open-per-patient:5}")
+    private int maxOpenPerPatient;
+
+    /** How far ahead a patient may book. */
+    @Value("${healbit.booking.max-days-ahead:90}")
+    private int maxDaysAhead;
 
     private final AppointmentRepository appointmentRepository;
     private final PatientRepository patientRepository;
@@ -45,6 +62,10 @@ public class AppointmentService {
         this.razorpayService = razorpayService;
     }
 
+    // =====================================================================
+    //  Booking
+    // =====================================================================
+
     public AppointmentResponse bookAppointment(Long patientId, AppointmentRequest request) {
         Patient patient = patientRepository.findByPatientIdAndDeletedFalse(patientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id " + patientId));
@@ -52,64 +73,68 @@ public class AppointmentService {
         Doctor doctor = doctorRepository.findByDoctorIdAndDeletedFalse(request.getDoctorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor not found with id " + request.getDoctorId()));
 
-        Hospital hospital = doctor.getHospital();
         LocalDate date = request.getAppointmentDate();
         LocalTime time = request.getAppointmentTime();
 
-        // Rule: cannot book past dates / times.
-        if (date.isBefore(LocalDate.now())) {
-            throw new IllegalArgumentException("Appointment date cannot be in the past");
-        }
-        if (date.equals(LocalDate.now()) && !time.isAfter(LocalTime.now())) {
-            throw new IllegalArgumentException("Appointment time has already passed");
-        }
-
-        // Rule: the doctor must have a configured weekly schedule.
-        if (!ScheduleUtil.scheduleConfigured(doctor)) {
-            throw new AppointmentConflictException("This doctor has not published a schedule yet");
-        }
-
-        // Rule: the chosen day must be one of the doctor's working days.
-        Set<DayOfWeek> days = ScheduleUtil.parseWorkingDays(doctor.getWorkingDays());
-        if (!days.contains(date.getDayOfWeek())) {
-            throw new AppointmentConflictException("The doctor does not work on the selected day");
-        }
-
-        // Rule: the time must be an exact 30-minute slot inside the working window, and must
-        // not fall inside one of the doctor's break windows.
-        List<com.healbit.dto.BreakPeriod> breaks = ScheduleUtil.parseBreaks(doctor.getBreaks());
-        if (!ScheduleUtil.generateSlots(doctor.getStartTime(), doctor.getEndTime(), breaks).contains(time)) {
+        // The doctor's hospital must be live on the platform.
+        requireBookableHospital(doctor);
+        // Date/time must be valid for this doctor's published schedule.
+        validateSlot(doctor, date, time);
+        // The patient must not already be booked elsewhere at this moment.
+        requireNoPatientClash(patientId, date, time, null);
+        // The patient must be under their open-booking cap.
+        long open = appointmentRepository.countByPatient_PatientIdAndStatusIn(patientId, LIVE);
+        if (open >= maxOpenPerPatient) {
             throw new AppointmentConflictException(
-                    "Please choose a valid 30-minute slot within the doctor's working hours");
-        }
-
-        // Rule: the slot must be free (fixed 30-min slots => one appointment per slot).
-        boolean slotTaken = appointmentRepository
-                .existsByDoctor_DoctorIdAndAppointmentDateAndAppointmentTimeAndStatusIn(
-                        doctor.getDoctorId(), date, time, LIVE);
-        if (slotTaken) {
-            throw new AppointmentConflictException("That slot has just been booked. Please pick another time");
+                    "You already have " + open + " active appointments. Please complete or cancel one before booking another.");
         }
 
         Appointment appointment = new Appointment();
         appointment.setPatient(patient);
-        appointment.setHospital(hospital);
+        appointment.setHospital(doctor.getHospital());
         appointment.setDoctor(doctor);
         appointment.setAppointmentDate(date);
         appointment.setAppointmentTime(time);
         appointment.setReason(request.getReason());
         appointment.setStatus(AppointmentStatus.PENDING);
+        appointment.setPaymentMethod(parseMethod(request.getPaymentMethod()));
+        appointment.claimSlot();
 
-        PaymentMethod method = PaymentMethod.CASH;
-        if (request.getPaymentMethod() != null) {
-            try {
-                method = PaymentMethod.valueOf(request.getPaymentMethod().trim().toUpperCase());
-            } catch (IllegalArgumentException ignored) { /* keep default CASH */ }
-        }
-        appointment.setPaymentMethod(method);
-
-        return toResponse(appointmentRepository.save(appointment));
+        return toResponse(saveClaimingSlot(appointment));
     }
+
+    /** Patient moves an existing appointment to a different slot (same doctor). */
+    public AppointmentResponse reschedule(Long patientId, Long appointmentId, RescheduleRequest request) {
+        Appointment appointment = requireOwnAppointment(patientId, appointmentId);
+
+        if (FINAL_STATES.contains(appointment.getStatus())) {
+            throw new AppointmentConflictException("This appointment can no longer be rescheduled");
+        }
+
+        Doctor doctor = appointment.getDoctor();
+        LocalDate date = request.getAppointmentDate();
+        LocalTime time = request.getAppointmentTime();
+
+        if (date.equals(appointment.getAppointmentDate()) && time.equals(appointment.getAppointmentTime())) {
+            throw new AppointmentConflictException("That is already the appointment's date and time");
+        }
+
+        requireBookableHospital(doctor);
+        validateSlot(doctor, date, time);
+        requireNoPatientClash(patientId, date, time, appointmentId);
+
+        appointment.setAppointmentDate(date);
+        appointment.setAppointmentTime(time);
+        // Moving the visit sends it back to the doctor for confirmation.
+        appointment.setStatus(AppointmentStatus.PENDING);
+        appointment.claimSlot();
+
+        return toResponse(saveClaimingSlot(appointment));
+    }
+
+    // =====================================================================
+    //  Listing
+    // =====================================================================
 
     public List<AppointmentResponse> getPatientAppointments(Long patientId) {
         return appointmentRepository.findByPatient_PatientId(patientId)
@@ -126,6 +151,10 @@ public class AppointmentService {
                 .stream().map(this::toResponse).sorted(byDateTimeDesc()).collect(Collectors.toList());
     }
 
+    // =====================================================================
+    //  Doctor actions
+    // =====================================================================
+
     /** Doctor confirms / rejects / completes one of their own appointments. */
     public AppointmentResponse updateStatusByDoctor(Long doctorId, AppointmentStatusUpdateRequest request) {
         Appointment appointment = appointmentRepository.findById(request.getAppointmentId())
@@ -139,8 +168,7 @@ public class AppointmentService {
         AppointmentStatus target = request.getStatus();
         AppointmentStatus current = appointment.getStatus();
 
-        if (current == AppointmentStatus.CANCELLED || current == AppointmentStatus.COMPLETED
-                || current == AppointmentStatus.REJECTED) {
+        if (FINAL_STATES.contains(current)) {
             throw new AppointmentConflictException("This appointment can no longer be changed");
         }
         Set<AppointmentStatus> allowed =
@@ -154,34 +182,41 @@ public class AppointmentService {
 
         if (target == AppointmentStatus.REJECTED) {
             maybeRefund(appointment);
+            appointment.releaseSlot();
         }
-        // Completing the visit means it's settled — mark it Paid if it wasn't already.
-        if (target == AppointmentStatus.COMPLETED
-                && appointment.getPaymentStatus() != PaymentStatus.PAID
-                && appointment.getPaymentStatus() != PaymentStatus.REFUNDED) {
-            appointment.setPaymentStatus(PaymentStatus.PAID);
-            if (appointment.getPaymentAmount() == null) {
-                appointment.setPaymentAmount(appointment.getDoctor().getConsultationFee());
+
+        if (target == AppointmentStatus.COMPLETED) {
+            // A cash visit is only marked paid when the doctor confirms the money was collected.
+            boolean cashCollected = !Boolean.FALSE.equals(request.getPaymentCollected());
+            boolean settled = appointment.getPaymentStatus() == PaymentStatus.PAID
+                    || appointment.getPaymentStatus() == PaymentStatus.REFUNDED;
+            if (!settled && cashCollected) {
+                appointment.setPaymentStatus(PaymentStatus.PAID);
+                if (appointment.getPaymentAmount() == null) {
+                    appointment.setPaymentAmount(appointment.getDoctor().getConsultationFee());
+                }
+                appointment.setPaidAt(LocalDateTime.now());
             }
-            appointment.setPaidAt(LocalDateTime.now());
+            // The visit happened, so the slot stays consumed (its date is in the past anyway).
         }
+
         appointment.setStatus(target);
         return toResponse(appointmentRepository.save(appointment));
     }
 
+    // =====================================================================
+    //  Patient actions
+    // =====================================================================
+
     /** Patient cancels their own appointment (soft cancel -> status CANCELLED, preserves history). */
     public void cancelAppointment(Long patientId, Long appointmentId) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found with id " + appointmentId));
+        Appointment appointment = requireOwnAppointment(patientId, appointmentId);
 
-        if (!appointment.getPatient().getPatientId().equals(patientId)) {
-            throw new UnauthorizedException("You can only cancel your own appointments");
-        }
         if (appointment.getStatus() == AppointmentStatus.COMPLETED) {
             throw new AppointmentConflictException("A completed appointment cannot be cancelled");
         }
-        if (appointment.getStatus() == AppointmentStatus.CANCELLED) {
-            throw new AppointmentConflictException("This appointment is already cancelled");
+        if (FINAL_STATES.contains(appointment.getStatus())) {
+            throw new AppointmentConflictException("This appointment is already closed");
         }
 
         Hospital hospital = appointment.getHospital();
@@ -197,7 +232,8 @@ public class AppointmentService {
         // before the scheduled appointment time.
         Integer minHours = hospital.getCancellationMinHours();
         if (minHours != null && minHours > 0) {
-            LocalDateTime appointmentDateTime = LocalDateTime.of(appointment.getAppointmentDate(), appointment.getAppointmentTime());
+            LocalDateTime appointmentDateTime =
+                    LocalDateTime.of(appointment.getAppointmentDate(), appointment.getAppointmentTime());
             if (!LocalDateTime.now().plusHours(minHours).isBefore(appointmentDateTime)) {
                 throw new AppointmentConflictException(
                         "Cancellations must be made at least " + minHours + " hour" + (minHours == 1 ? "" : "s") +
@@ -207,23 +243,136 @@ public class AppointmentService {
 
         maybeRefund(appointment);
         appointment.setStatus(AppointmentStatus.CANCELLED);
+        appointment.releaseSlot();
         appointmentRepository.save(appointment);
     }
 
     /** Hard-deletes an unpaid booking (used to release the slot if an online payment is abandoned). */
     public void discardUnpaidBooking(Long patientId, Long appointmentId) {
-        Appointment appointment = appointmentRepository.findById(appointmentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found with id " + appointmentId));
-        if (!appointment.getPatient().getPatientId().equals(patientId)) {
-            throw new UnauthorizedException("You can only discard your own bookings");
-        }
+        Appointment appointment = requireOwnAppointment(patientId, appointmentId);
         if (appointment.getPaymentStatus() == PaymentStatus.PAID) {
             throw new AppointmentConflictException("A paid appointment cannot be discarded");
         }
         appointmentRepository.delete(appointment);
     }
 
-    /** If the appointment was paid, refund it via Razorpay and mark it REFUNDED. */
+    // =====================================================================
+    //  Used by the maintenance jobs and by doctor removal
+    // =====================================================================
+
+    /** Marks a still-pending, now past-due appointment as EXPIRED and frees its slot. */
+    public void expire(Appointment appointment) {
+        maybeRefund(appointment);
+        appointment.setStatus(AppointmentStatus.EXPIRED);
+        appointment.releaseSlot();
+        appointmentRepository.save(appointment);
+    }
+
+    /** Cancels an appointment on the platform's behalf (e.g. the doctor was removed). */
+    public void cancelAdministratively(Appointment appointment) {
+        maybeRefund(appointment);
+        appointment.setStatus(AppointmentStatus.CANCELLED);
+        appointment.releaseSlot();
+        appointmentRepository.save(appointment);
+    }
+
+    // =====================================================================
+    //  Shared validation
+    // =====================================================================
+
+    /** Validates a doctor/date/time against the doctor's published schedule. */
+    public void validateSlot(Doctor doctor, LocalDate date, LocalTime time) {
+        if (date == null || time == null) {
+            throw new IllegalArgumentException("An appointment date and time are required");
+        }
+        if (date.isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Appointment date cannot be in the past");
+        }
+        if (date.equals(LocalDate.now()) && !time.isAfter(LocalTime.now())) {
+            throw new IllegalArgumentException("Appointment time has already passed");
+        }
+        if (date.isAfter(LocalDate.now().plusDays(maxDaysAhead))) {
+            throw new IllegalArgumentException(
+                    "Appointments can only be booked up to " + maxDaysAhead + " days in advance");
+        }
+        if (!ScheduleUtil.scheduleConfigured(doctor)) {
+            throw new AppointmentConflictException("This doctor has not published a schedule yet");
+        }
+        Set<DayOfWeek> days = ScheduleUtil.parseWorkingDays(doctor.getWorkingDays());
+        if (!days.contains(date.getDayOfWeek())) {
+            throw new AppointmentConflictException("The doctor does not work on the selected day");
+        }
+        List<com.healbit.dto.BreakPeriod> breaks = ScheduleUtil.parseBreaks(doctor.getBreaks());
+        if (!ScheduleUtil.generateSlots(doctor.getStartTime(), doctor.getEndTime(), breaks).contains(time)) {
+            throw new AppointmentConflictException(
+                    "Please choose a valid 30-minute slot within the doctor's working hours");
+        }
+        // Fast, friendly pre-check. The unique slot_key index is what actually guarantees it.
+        boolean taken = appointmentRepository
+                .existsByDoctor_DoctorIdAndAppointmentDateAndAppointmentTimeAndStatusIn(
+                        doctor.getDoctorId(), date, time, LIVE);
+        if (taken) {
+            throw new AppointmentConflictException("That slot has just been booked. Please pick another time");
+        }
+    }
+
+    private void requireBookableHospital(Doctor doctor) {
+        Hospital hospital = doctor.getHospital();
+        if (hospital == null || hospital.isDeleted() || hospital.getStatus() != HospitalStatus.ACTIVE) {
+            throw new AppointmentConflictException(
+                    "This doctor's hospital is not currently accepting appointments");
+        }
+    }
+
+    /** A patient cannot be in two places at once. */
+    private void requireNoPatientClash(Long patientId, LocalDate date, LocalTime time, Long ignoreAppointmentId) {
+        boolean clash = appointmentRepository
+                .existsByPatient_PatientIdAndAppointmentDateAndAppointmentTimeAndStatusIn(patientId, date, time, LIVE);
+        if (!clash) return;
+        if (ignoreAppointmentId != null) {
+            // Allow the appointment being rescheduled to "clash" with itself.
+            boolean onlyItself = appointmentRepository.findByPatient_PatientId(patientId).stream()
+                    .filter(a -> LIVE.contains(a.getStatus()))
+                    .filter(a -> a.getAppointmentDate().equals(date) && a.getAppointmentTime().equals(time))
+                    .allMatch(a -> a.getAppointmentId().equals(ignoreAppointmentId));
+            if (onlyItself) return;
+        }
+        throw new AppointmentConflictException(
+                "You already have another appointment at this date and time");
+    }
+
+    /**
+     * Saves while translating a unique-index violation on slot_key into a friendly conflict.
+     * This is what makes concurrent bookings of the same slot impossible.
+     */
+    private Appointment saveClaimingSlot(Appointment appointment) {
+        try {
+            return appointmentRepository.saveAndFlush(appointment);
+        } catch (DataIntegrityViolationException ex) {
+            throw new AppointmentConflictException(
+                    "That slot has just been booked by someone else. Please pick another time");
+        }
+    }
+
+    private Appointment requireOwnAppointment(Long patientId, Long appointmentId) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found with id " + appointmentId));
+        if (!appointment.getPatient().getPatientId().equals(patientId)) {
+            throw new UnauthorizedException("You can only manage your own appointments");
+        }
+        return appointment;
+    }
+
+    private PaymentMethod parseMethod(String raw) {
+        if (raw != null) {
+            try {
+                return PaymentMethod.valueOf(raw.trim().toUpperCase());
+            } catch (IllegalArgumentException ignored) { /* fall through to CASH */ }
+        }
+        return PaymentMethod.CASH;
+    }
+
+    /** If the appointment was paid online, refund it via Razorpay and mark it REFUNDED. */
     private void maybeRefund(Appointment appointment) {
         if (appointment.getPaymentStatus() == PaymentStatus.PAID
                 && appointment.getRazorpayPaymentId() != null) {

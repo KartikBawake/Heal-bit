@@ -4,7 +4,7 @@ import { getErrorMessage } from "../../utils/error";
 import StatusBadge from "../../components/StatusBadge";
 import Pagination from "../../components/Pagination";
 
-const FILTERS = ["ALL", "PENDING", "CONFIRMED", "COMPLETED", "REJECTED", "CANCELLED"];
+const FILTERS = ["ALL", "PENDING", "CONFIRMED", "COMPLETED", "REJECTED", "CANCELLED", "EXPIRED"];
 const PAGE_SIZE = 12;
 
 // Read-only for hospitals: appointments are confirmed/rejected/completed by the doctors themselves.

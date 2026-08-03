@@ -52,6 +52,7 @@ public class DoctorDashboardService {
         dto.setCompletedAppointments(count(all, AppointmentStatus.COMPLETED));
         dto.setRejectedAppointments(count(all, AppointmentStatus.REJECTED));
         dto.setCancelledAppointments(count(all, AppointmentStatus.CANCELLED));
+        dto.setExpiredAppointments(count(all, AppointmentStatus.EXPIRED));
 
         LocalDate today = LocalDate.now();
         dto.setTodayAppointments(all.stream()

@@ -415,3 +415,4 @@ java.io.FileNotFoundException: C:\Users\91935\Desktop\Heal-Bit\.metadata\.plugin
 	at org.eclipse.core.internal.resources.Workspace.save(Workspace.java:2549)
 	at org.eclipse.ui.internal.ide.application.IDEWorkbenchAdvisor.lambda$1(IDEWorkbenchAdvisor.java:558)
 	at org.eclipse.jface.operation.ModalContext$ModalContextThread.run(ModalContext.java:123)
+2026-08-04 00:29:03,656 [Worker-5: Loading available Gradle versions] INFO  o.e.b.c.i.u.g.PublishedGradleVersions - Gradle version information cache is out-of-date. Trying to update.

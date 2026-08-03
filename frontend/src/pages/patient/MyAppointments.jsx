@@ -1,19 +1,32 @@
 import { useEffect, useState, Fragment } from "react";
-import { listAppointments, cancelAppointment } from "../../api/appointmentApi";
+import { listAppointments, cancelAppointment, rescheduleAppointment } from "../../api/appointmentApi";
+import { getSlots } from "../../api/doctorApi";
 import { rateDoctor, rateHospital } from "../../api/ratingApi";
 import { getErrorMessage } from "../../utils/error";
 import StatusBadge from "../../components/StatusBadge";
 import PaymentBadge from "../../components/PaymentBadge";
 import Pagination from "../../components/Pagination";
 import StarRating from "../../components/StarRating";
+import Modal from "../../components/Modal";
 
 const PAGE_SIZE = 12;
+const LIVE = ["PENDING", "CONFIRMED"];
+const today = new Date().toISOString().split("T")[0];
 
 export default function MyAppointments() {
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
+
+  // Reschedule flow
+  const [reFor, setReFor] = useState(null);        // appointment being moved
+  const [reDate, setReDate] = useState("");
+  const [reSlots, setReSlots] = useState([]);
+  const [reSlotsLoading, setReSlotsLoading] = useState(false);
+  const [reSlot, setReSlot] = useState("");
+  const [reSaving, setReSaving] = useState(false);
+  const [reError, setReError] = useState("");
 
   const [ratingFor, setRatingFor] = useState(null); // appointmentId currently being rated
   const [doctorRating, setDoctorRating] = useState(0);
@@ -55,7 +68,52 @@ export default function MyAppointments() {
   // Cancellation is ultimately gated server-side by the hospital's policy (whether an accepted
   // appointment can still be cancelled, and any minimum-notice window); the button just offers
   // the option for any appointment that isn't already finished.
-  const cancellable = (s) => s !== "COMPLETED" && s !== "CANCELLED";
+  const cancellable = (s) => LIVE.includes(s);
+
+  const openReschedule = (a) => {
+    setReFor(a);
+    setReDate("");
+    setReSlots([]);
+    setReSlot("");
+    setReError("");
+  };
+
+  const pickReDate = async (value) => {
+    setReDate(value);
+    setReSlot("");
+    setReSlots([]);
+    setReError("");
+    if (!value || !reFor) return;
+    setReSlotsLoading(true);
+    try {
+      const { data } = await getSlots(reFor.doctorId, value);
+      setReSlots(data);
+      if (data.length === 0) setReError("No open slots on this day. Try another date.");
+    } catch (err) {
+      setReError(getErrorMessage(err));
+    } finally {
+      setReSlotsLoading(false);
+    }
+  };
+
+  const submitReschedule = async (e) => {
+    e.preventDefault();
+    if (!reSlot) return setReError("Please pick a new time slot.");
+    setReSaving(true);
+    setReError("");
+    try {
+      await rescheduleAppointment(reFor.appointmentId, {
+        appointmentDate: reDate,
+        appointmentTime: reSlot,
+      });
+      setReFor(null);
+      load();
+    } catch (err) {
+      setReError(getErrorMessage(err));
+    } finally {
+      setReSaving(false);
+    }
+  };
 
   const openRating = (a) => {
     setRatingFor(a.appointmentId);
@@ -125,7 +183,10 @@ export default function MyAppointments() {
                     <td>
                       <div className="actions">
                         {cancellable(a.status) && (
-                          <button className="btn btn-danger btn-sm" onClick={() => onCancel(a.appointmentId)}>Cancel</button>
+                          <>
+                            <button className="btn btn-outline btn-sm" onClick={() => openReschedule(a)}>Reschedule</button>
+                            <button className="btn btn-danger btn-sm" onClick={() => onCancel(a.appointmentId)}>Cancel</button>
+                          </>
                         )}
                         {a.status === "COMPLETED" && (
                           <button className="btn btn-outline btn-sm" onClick={() => openRating(a)}>
@@ -186,6 +247,58 @@ export default function MyAppointments() {
           />
         </div>
       )}
+
+      {/* Reschedule: same doctor, new open slot. */}
+      <Modal
+        open={!!reFor}
+        onClose={() => setReFor(null)}
+        title={reFor ? `Reschedule · ${reFor.doctorName}` : ""}
+      >
+        {reFor && (
+          <form onSubmit={submitReschedule}>
+            <p className="muted" style={{ margin: "0 0 14px" }}>
+              Currently {reFor.appointmentDate} at {reFor.appointmentTime}. Picking a new slot sends the
+              appointment back to the doctor for confirmation.
+            </p>
+
+            {reError && <div className="alert alert-error">{reError}</div>}
+
+            <div className="field">
+              <label>New date</label>
+              <input className="input" type="date" min={today} value={reDate}
+                onChange={(e) => pickReDate(e.target.value)} required />
+            </div>
+
+            {reDate && (
+              <div className="field">
+                <label>Available 30-minute slots</label>
+                {reSlotsLoading ? (
+                  <p className="muted">Checking availability…</p>
+                ) : reSlots.length === 0 ? (
+                  <p className="muted">No open slots on this day.</p>
+                ) : (
+                  <div className="slot-grid">
+                    {reSlots.map((t) => (
+                      <button type="button" key={t}
+                        className={`slot-chip${reSlot === t ? " active" : ""}`}
+                        onClick={() => setReSlot(t)}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="actions mt-3">
+              <button className="btn btn-primary" disabled={reSaving || !reSlot}>
+                {reSaving ? "Moving…" : "Confirm new slot"}
+              </button>
+              <button type="button" className="btn btn-outline" onClick={() => setReFor(null)}>Cancel</button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 }

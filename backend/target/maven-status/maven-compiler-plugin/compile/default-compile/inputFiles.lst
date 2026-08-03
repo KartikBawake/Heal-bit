@@ -45,6 +45,7 @@ C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\dto\PaymentOrd
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\dto\PaymentVerifyRequest.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\dto\RatingRequest.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\dto\RatingResponse.java
+C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\dto\RescheduleRequest.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\dto\SpecializationRequest.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\dto\SpecializationResponse.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\entity\Admin.java
@@ -79,6 +80,7 @@ C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\repository\Pat
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\repository\PatientRepository.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\repository\SpecializationRepository.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\AdminService.java
+C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\AppointmentMaintenanceService.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\AppointmentService.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\AuthenticationService.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\CaptchaService.java

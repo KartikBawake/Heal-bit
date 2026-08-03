@@ -310,7 +310,6 @@ export default function Home() {
             <span className="role-icon"><Icon name="stethoscope" size={24} /></span>
             <h3>For doctors</h3>
             <p>Set your weekly schedule and manage every appointment request.</p>
-            <p className="role-note">Accounts are created by your hospital.</p>
             <div className="links">
               <Link to="/doctor/login" className="btn btn-sm btn-primary">Sign in</Link>
             </div>

@@ -5,5 +5,7 @@ public enum AppointmentStatus {
     CONFIRMED,
     COMPLETED,
     REJECTED,
-    CANCELLED
+    CANCELLED,
+    /** The visit time passed while the appointment was still awaiting the doctor's decision. */
+    EXPIRED
 }

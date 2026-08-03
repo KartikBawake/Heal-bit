@@ -14,6 +14,7 @@ public class DoctorDashboardResponse {
     private long completedAppointments;
     private long rejectedAppointments;
     private long cancelledAppointments;
+    private long expiredAppointments;
     private long todayAppointments;
 
     // Next few upcoming (PENDING/CONFIRMED) appointments.
@@ -50,6 +51,9 @@ public class DoctorDashboardResponse {
 
     public long getCancelledAppointments() { return cancelledAppointments; }
     public void setCancelledAppointments(long cancelledAppointments) { this.cancelledAppointments = cancelledAppointments; }
+
+    public long getExpiredAppointments() { return expiredAppointments; }
+    public void setExpiredAppointments(long expiredAppointments) { this.expiredAppointments = expiredAppointments; }
 
     public long getTodayAppointments() { return todayAppointments; }
     public void setTodayAppointments(long todayAppointments) { this.todayAppointments = todayAppointments; }
