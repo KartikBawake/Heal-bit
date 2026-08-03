@@ -33,19 +33,22 @@ public class AuthenticationService {
     private final AdminRepository adminRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final HospitalImageService hospitalImageService;
 
     public AuthenticationService(PatientRepository patientRepository,
                                  HospitalRepository hospitalRepository,
                                  DoctorRepository doctorRepository,
                                  AdminRepository adminRepository,
                                  PasswordEncoder passwordEncoder,
-                                 JwtService jwtService) {
+                                 JwtService jwtService,
+                                 HospitalImageService hospitalImageService) {
         this.patientRepository = patientRepository;
         this.hospitalRepository = hospitalRepository;
         this.doctorRepository = doctorRepository;
         this.adminRepository = adminRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.hospitalImageService = hospitalImageService;
     }
 
     // ---------------- PATIENT ----------------
@@ -101,7 +104,7 @@ public class AuthenticationService {
         hospital.setState(request.getState());
         hospital.setPincode(request.getPincode());
         hospital.setDescription(request.getDescription());
-        hospital.setImageData(ImageValidator.validateAndClean(request.getImage()));
+        hospitalImageService.apply(hospital, request.getImage());
         hospital.setStatus(HospitalStatus.PENDING);
 
         Hospital saved = hospitalRepository.save(hospital);

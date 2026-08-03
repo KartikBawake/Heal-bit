@@ -54,6 +54,7 @@ com\healbit\dto\RescheduleRequest.class
 com\healbit\controller\DoctorPatientDocumentController.class
 com\healbit\service\MetricsUtil.class
 com\healbit\entity\Specialization.class
+com\healbit\service\CloudinaryService.class
 com\healbit\dto\DoctorLoginRequest.class
 com\healbit\config\SecurityConfig.class
 com\healbit\dto\AppointmentResponse.class
@@ -84,6 +85,7 @@ com\healbit\repository\DoctorRepository.class
 com\healbit\service\AuthenticationService.class
 com\healbit\service\JwtService.class
 com\healbit\exception\GlobalExceptionHandler.class
+com\healbit\service\CloudinaryService$Stored.class
 com\healbit\dto\LoginResponse.class
 com\healbit\entity\DoctorRating.class
 com\healbit\dto\HospitalUpdateRequest.class
@@ -91,6 +93,7 @@ com\healbit\service\ScheduleUtil.class
 com\healbit\service\HospitalService.class
 com\healbit\entity\PatientDocument.class
 com\healbit\service\AppointmentService.class
+com\healbit\service\HospitalImageService.class
 com\healbit\service\ImageValidator.class
 com\healbit\entity\Admin.class
 com\healbit\repository\HospitalRepository.class

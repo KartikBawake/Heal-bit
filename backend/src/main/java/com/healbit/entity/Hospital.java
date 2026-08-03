@@ -40,9 +40,16 @@ public class Hospital {
     @Column(length = 1000)
     private String description;
 
-    // Optional hospital photo stored as a base64 data URL.
+    /** Legacy: photo kept inline as a base64 data URL (pre-Cloudinary rows). */
     @Column(columnDefinition = "LONGTEXT")
     private String imageData;
+
+    /** Cloudinary-hosted photo (public CDN URL) and its asset id, used for replace/delete. */
+    @Column(length = 600)
+    private String imageUrl;
+
+    @Column(length = 255)
+    private String imagePublicId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -112,6 +119,15 @@ public class Hospital {
 
     public String getImageData() { return imageData; }
     public void setImageData(String imageData) { this.imageData = imageData; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public String getImagePublicId() { return imagePublicId; }
+    public void setImagePublicId(String imagePublicId) { this.imagePublicId = imagePublicId; }
+
+    /** The photo to show: the Cloudinary URL when present, else the legacy inline image. */
+    public String displayImage() { return imageUrl != null ? imageUrl : imageData; }
 
     public HospitalStatus getStatus() { return status; }
     public void setStatus(HospitalStatus status) { this.status = status; }

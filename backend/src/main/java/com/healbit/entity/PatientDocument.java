@@ -30,6 +30,24 @@ public class PatientDocument {
     @Column(nullable = false, updatable = false)
     private LocalDateTime uploadedAt;
 
+    // --- Where the bytes actually live -------------------------------------
+    /** "CLOUDINARY" for cloud-stored files; null/"LOCAL" for older files still on disk. */
+    @Column(length = 20)
+    private String storage;
+
+    /** Cloudinary delivery details (storedName doubles as the Cloudinary public id). */
+    @Column(length = 20)
+    private String resourceType;
+
+    @Column(length = 20)
+    private String deliveryType;
+
+    @Column(length = 16)
+    private String format;
+
+    @Column(length = 600)
+    private String url;
+
     @PrePersist
     protected void onCreate() {
         this.uploadedAt = LocalDateTime.now();
@@ -55,4 +73,22 @@ public class PatientDocument {
 
     public LocalDateTime getUploadedAt() { return uploadedAt; }
     public void setUploadedAt(LocalDateTime uploadedAt) { this.uploadedAt = uploadedAt; }
+
+    public String getStorage() { return storage; }
+    public void setStorage(String storage) { this.storage = storage; }
+
+    public String getResourceType() { return resourceType; }
+    public void setResourceType(String resourceType) { this.resourceType = resourceType; }
+
+    public String getDeliveryType() { return deliveryType; }
+    public void setDeliveryType(String deliveryType) { this.deliveryType = deliveryType; }
+
+    public String getFormat() { return format; }
+    public void setFormat(String format) { this.format = format; }
+
+    public String getUrl() { return url; }
+    public void setUrl(String url) { this.url = url; }
+
+    /** True when the bytes live on Cloudinary rather than the server's disk. */
+    public boolean isCloudStored() { return "CLOUDINARY".equalsIgnoreCase(storage); }
 }

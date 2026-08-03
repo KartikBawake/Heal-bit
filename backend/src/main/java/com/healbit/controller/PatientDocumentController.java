@@ -4,8 +4,8 @@ import com.healbit.config.UserPrincipal;
 import com.healbit.dto.ApiResponse;
 import com.healbit.dto.PatientDocumentResponse;
 import com.healbit.entity.PatientDocument;
-import com.healbit.service.FileStorageService;
 import com.healbit.service.PatientDocumentService;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -22,11 +22,9 @@ import java.util.List;
 public class PatientDocumentController {
 
     private final PatientDocumentService documentService;
-    private final FileStorageService storage;
 
-    public PatientDocumentController(PatientDocumentService documentService, FileStorageService storage) {
+    public PatientDocumentController(PatientDocumentService documentService) {
         this.documentService = documentService;
-        this.storage = storage;
     }
 
     /** Patient uploads a document/image (multipart form field "file"). */
@@ -49,7 +47,7 @@ public class PatientDocumentController {
             @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Long id) {
         PatientDocument doc = documentService.getOwned(principal.getId(), id);
-        Resource resource = storage.loadAsResource(doc.getStoredName());
+        Resource resource = new ByteArrayResource(documentService.loadContent(doc));
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(doc.getContentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + doc.getOriginalName() + "\"")

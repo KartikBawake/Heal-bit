@@ -3,8 +3,8 @@ package com.healbit.controller;
 import com.healbit.config.UserPrincipal;
 import com.healbit.dto.PatientDocumentResponse;
 import com.healbit.entity.PatientDocument;
-import com.healbit.service.FileStorageService;
 import com.healbit.service.PatientDocumentService;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -23,11 +23,9 @@ import java.util.List;
 public class DoctorPatientDocumentController {
 
     private final PatientDocumentService documentService;
-    private final FileStorageService storage;
 
-    public DoctorPatientDocumentController(PatientDocumentService documentService, FileStorageService storage) {
+    public DoctorPatientDocumentController(PatientDocumentService documentService) {
         this.documentService = documentService;
-        this.storage = storage;
     }
 
     @GetMapping("/{patientId}/documents")
@@ -43,7 +41,7 @@ public class DoctorPatientDocumentController {
             @PathVariable Long patientId,
             @PathVariable Long id) {
         PatientDocument doc = documentService.getForDoctor(principal.getId(), patientId, id);
-        Resource resource = storage.loadAsResource(doc.getStoredName());
+        Resource resource = new ByteArrayResource(documentService.loadContent(doc));
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(doc.getContentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + doc.getOriginalName() + "\"")

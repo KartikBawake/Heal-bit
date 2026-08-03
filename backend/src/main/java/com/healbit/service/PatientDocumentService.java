@@ -41,15 +41,18 @@ public class PatientDocumentService {
     private final PatientRepository patientRepository;
     private final AppointmentRepository appointmentRepository;
     private final FileStorageService storage;
+    private final CloudinaryService cloudinary;
 
     public PatientDocumentService(PatientDocumentRepository documentRepository,
                                   PatientRepository patientRepository,
                                   AppointmentRepository appointmentRepository,
-                                  FileStorageService storage) {
+                                  FileStorageService storage,
+                                  CloudinaryService cloudinary) {
         this.documentRepository = documentRepository;
         this.patientRepository = patientRepository;
         this.appointmentRepository = appointmentRepository;
         this.storage = storage;
+        this.cloudinary = cloudinary;
     }
 
     public PatientDocumentResponse upload(Long patientId, MultipartFile file) {
@@ -68,15 +71,38 @@ public class PatientDocumentService {
         Patient patient = patientRepository.findByPatientIdAndDeletedFalse(patientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Patient not found with id " + patientId));
 
-        String stored = storage.store(file);
-
         PatientDocument doc = new PatientDocument();
         doc.setPatient(patient);
-        doc.setOriginalName(StringUtils.hasText(file.getOriginalFilename())
-                ? file.getOriginalFilename() : stored);
-        doc.setStoredName(stored);
         doc.setContentType(type.toLowerCase());
         doc.setFileSize(file.getSize());
+
+        String originalName = StringUtils.hasText(file.getOriginalFilename())
+                ? file.getOriginalFilename() : "document";
+        doc.setOriginalName(originalName);
+
+        if (cloudinary.isEnabled()) {
+            // Medical records are uploaded as PRIVATE assets — they are only ever served
+            // back through this backend, after the ownership check below.
+            byte[] bytes;
+            try {
+                bytes = file.getBytes();
+            } catch (java.io.IOException e) {
+                throw new IllegalStateException("Could not read the uploaded file");
+            }
+            // Images go up as images (so thumbnails work); every other document is stored as a
+            // "raw" file, which sidesteps Cloudinary's PDF/ZIP delivery restriction entirely.
+            String resourceType = type.toLowerCase().startsWith("image/") ? "auto" : "raw";
+            CloudinaryService.Stored s = cloudinary.upload(bytes, "patient-documents", originalName, true, resourceType);
+            doc.setStorage("CLOUDINARY");
+            doc.setStoredName(s.publicId());
+            doc.setResourceType(s.resourceType());
+            doc.setDeliveryType(s.deliveryType());
+            doc.setFormat(s.format());
+            doc.setUrl(s.url());
+        } else {
+            doc.setStorage("LOCAL");
+            doc.setStoredName(storage.store(file));
+        }
 
         return toResponse(documentRepository.save(doc));
     }
@@ -96,8 +122,29 @@ public class PatientDocumentService {
 
     public void delete(Long patientId, Long documentId) {
         PatientDocument doc = getOwned(patientId, documentId);
-        storage.delete(doc.getStoredName());
+        if (doc.isCloudStored()) {
+            cloudinary.delete(doc.getStoredName(), doc.getResourceType(), doc.getDeliveryType());
+        } else {
+            storage.delete(doc.getStoredName());
+        }
         documentRepository.delete(doc);
+    }
+
+    /**
+     * Reads a document's bytes from wherever it lives. Callers must have already verified
+     * that the requester is allowed to see it.
+     */
+    @Transactional(readOnly = true)
+    public byte[] loadContent(PatientDocument doc) {
+        if (doc.isCloudStored()) {
+            return cloudinary.download(doc.getStoredName(), doc.getResourceType(),
+                    doc.getDeliveryType(), doc.getFormat(), doc.getUrl());
+        }
+        try {
+            return storage.loadAsResource(doc.getStoredName()).getInputStream().readAllBytes();
+        } catch (java.io.IOException e) {
+            throw new IllegalStateException("Could not read the stored file");
+        }
     }
 
     // ---------------- Doctor access (only for their own patients) ----------------

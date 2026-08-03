@@ -26,13 +26,16 @@ public class HospitalService {
     private final HospitalRepository hospitalRepository;
     private final HospitalRatingRepository hospitalRatingRepository;
     private final PatientRepository patientRepository;
+    private final HospitalImageService hospitalImageService;
 
     public HospitalService(HospitalRepository hospitalRepository,
                            HospitalRatingRepository hospitalRatingRepository,
-                           PatientRepository patientRepository) {
+                           PatientRepository patientRepository,
+                           HospitalImageService hospitalImageService) {
         this.hospitalRepository = hospitalRepository;
         this.hospitalRatingRepository = hospitalRatingRepository;
         this.patientRepository = patientRepository;
+        this.hospitalImageService = hospitalImageService;
     }
 
     /**
@@ -129,9 +132,7 @@ public class HospitalService {
         if (request.getState() != null) hospital.setState(request.getState());
         if (request.getPincode() != null) hospital.setPincode(request.getPincode());
         if (request.getDescription() != null) hospital.setDescription(request.getDescription());
-        if (request.getImage() != null) {
-            hospital.setImageData(request.getImage().isBlank() ? null : ImageValidator.validateAndClean(request.getImage()));
-        }
+        hospitalImageService.apply(hospital, request.getImage());
         if (request.getAllowCancellationAfterAcceptance() != null) {
             hospital.setAllowCancellationAfterAcceptance(request.getAllowCancellationAfterAcceptance());
         }
@@ -162,7 +163,7 @@ public class HospitalService {
         response.setState(hospital.getState());
         response.setPincode(hospital.getPincode());
         response.setDescription(hospital.getDescription());
-        response.setImageUrl(hospital.getImageData());
+        response.setImageUrl(hospital.displayImage());
         response.setStatus(hospital.getStatus());
         response.setCreatedAt(hospital.getCreatedAt());
         response.setAverageRating(hospitalRatingRepository.findAverageRatingByHospitalId(hospital.getHospitalId()));

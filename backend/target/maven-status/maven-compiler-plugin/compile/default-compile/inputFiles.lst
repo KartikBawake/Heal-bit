@@ -84,10 +84,12 @@ C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\Appoin
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\AppointmentService.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\AuthenticationService.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\CaptchaService.java
+C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\CloudinaryService.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\DoctorDashboardService.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\DoctorService.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\FileStorageService.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\HospitalDashboardService.java
+C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\HospitalImageService.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\HospitalService.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\ImageValidator.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\JwtService.java
