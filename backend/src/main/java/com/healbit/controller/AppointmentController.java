@@ -59,6 +59,15 @@ public class AppointmentController {
         return ResponseEntity.ok(appointmentService.updateStatusByDoctor(principal.getId(), request));
     }
 
+    /** Patient discards an unpaid booking (e.g. abandoned online payment) to free the slot. */
+    @DeleteMapping("/{id}/discard")
+    public ResponseEntity<ApiResponse> discard(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long id) {
+        appointmentService.discardUnpaidBooking(principal.getId(), id);
+        return ResponseEntity.ok(new ApiResponse(true, "Booking discarded"));
+    }
+
     /** Patient cancels their own appointment. */
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse> cancel(

@@ -33,13 +33,16 @@ public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
+    private final RazorpayService razorpayService;
 
     public AppointmentService(AppointmentRepository appointmentRepository,
                               PatientRepository patientRepository,
-                              DoctorRepository doctorRepository) {
+                              DoctorRepository doctorRepository,
+                              RazorpayService razorpayService) {
         this.appointmentRepository = appointmentRepository;
         this.patientRepository = patientRepository;
         this.doctorRepository = doctorRepository;
+        this.razorpayService = razorpayService;
     }
 
     public AppointmentResponse bookAppointment(Long patientId, AppointmentRequest request) {
@@ -97,6 +100,14 @@ public class AppointmentService {
         appointment.setReason(request.getReason());
         appointment.setStatus(AppointmentStatus.PENDING);
 
+        PaymentMethod method = PaymentMethod.CASH;
+        if (request.getPaymentMethod() != null) {
+            try {
+                method = PaymentMethod.valueOf(request.getPaymentMethod().trim().toUpperCase());
+            } catch (IllegalArgumentException ignored) { /* keep default CASH */ }
+        }
+        appointment.setPaymentMethod(method);
+
         return toResponse(appointmentRepository.save(appointment));
     }
 
@@ -141,6 +152,19 @@ public class AppointmentService {
             throw new AppointmentConflictException("Only a confirmed appointment can be marked completed");
         }
 
+        if (target == AppointmentStatus.REJECTED) {
+            maybeRefund(appointment);
+        }
+        // Completing the visit means it's settled — mark it Paid if it wasn't already.
+        if (target == AppointmentStatus.COMPLETED
+                && appointment.getPaymentStatus() != PaymentStatus.PAID
+                && appointment.getPaymentStatus() != PaymentStatus.REFUNDED) {
+            appointment.setPaymentStatus(PaymentStatus.PAID);
+            if (appointment.getPaymentAmount() == null) {
+                appointment.setPaymentAmount(appointment.getDoctor().getConsultationFee());
+            }
+            appointment.setPaidAt(LocalDateTime.now());
+        }
         appointment.setStatus(target);
         return toResponse(appointmentRepository.save(appointment));
     }
@@ -181,8 +205,33 @@ public class AppointmentService {
             }
         }
 
+        maybeRefund(appointment);
         appointment.setStatus(AppointmentStatus.CANCELLED);
         appointmentRepository.save(appointment);
+    }
+
+    /** Hard-deletes an unpaid booking (used to release the slot if an online payment is abandoned). */
+    public void discardUnpaidBooking(Long patientId, Long appointmentId) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found with id " + appointmentId));
+        if (!appointment.getPatient().getPatientId().equals(patientId)) {
+            throw new UnauthorizedException("You can only discard your own bookings");
+        }
+        if (appointment.getPaymentStatus() == PaymentStatus.PAID) {
+            throw new AppointmentConflictException("A paid appointment cannot be discarded");
+        }
+        appointmentRepository.delete(appointment);
+    }
+
+    /** If the appointment was paid, refund it via Razorpay and mark it REFUNDED. */
+    private void maybeRefund(Appointment appointment) {
+        if (appointment.getPaymentStatus() == PaymentStatus.PAID
+                && appointment.getRazorpayPaymentId() != null) {
+            String refundId = razorpayService.refund(appointment.getRazorpayPaymentId());
+            appointment.setPaymentStatus(PaymentStatus.REFUNDED);
+            appointment.setRazorpayRefundId(refundId);
+            appointment.setRefundedAt(LocalDateTime.now());
+        }
     }
 
     private Comparator<AppointmentResponse> byDateTimeDesc() {
@@ -206,6 +255,10 @@ public class AppointmentService {
         r.setReason(a.getReason());
         r.setStatus(a.getStatus());
         r.setCreatedAt(a.getCreatedAt());
+        r.setPaymentStatus(a.getPaymentStatus());
+        r.setPaymentMethod(a.getPaymentMethod());
+        r.setConsultationFee(a.getDoctor().getConsultationFee());
+        r.setPaymentAmount(a.getPaymentAmount());
         return r;
     }
 }

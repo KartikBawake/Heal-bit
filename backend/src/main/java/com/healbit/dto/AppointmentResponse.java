@@ -1,6 +1,8 @@
 package com.healbit.dto;
 
 import com.healbit.entity.AppointmentStatus;
+import com.healbit.entity.PaymentStatus;
+import com.healbit.entity.PaymentMethod;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -21,6 +23,10 @@ public class AppointmentResponse {
     private String reason;
     private AppointmentStatus status;
     private LocalDateTime createdAt;
+    private PaymentStatus paymentStatus;
+    private PaymentMethod paymentMethod;
+    private Double consultationFee;
+    private Double paymentAmount;
 
     public Long getAppointmentId() { return appointmentId; }
     public void setAppointmentId(Long appointmentId) { this.appointmentId = appointmentId; }
@@ -60,4 +66,16 @@ public class AppointmentResponse {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public PaymentStatus getPaymentStatus() { return paymentStatus; }
+    public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+
+    public PaymentMethod getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public Double getConsultationFee() { return consultationFee; }
+    public void setConsultationFee(Double consultationFee) { this.consultationFee = consultationFee; }
+
+    public Double getPaymentAmount() { return paymentAmount; }
+    public void setPaymentAmount(Double paymentAmount) { this.paymentAmount = paymentAmount; }
 }

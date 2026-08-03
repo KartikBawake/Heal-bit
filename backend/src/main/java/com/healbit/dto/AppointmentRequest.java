@@ -23,6 +23,9 @@ public class AppointmentRequest {
     @NotBlank(message = "Reason is required")
     private String reason;
 
+    // "ONLINE" or "CASH" (defaults to CASH server-side if missing)
+    private String paymentMethod;
+
     public Long getDoctorId() { return doctorId; }
     public void setDoctorId(Long doctorId) { this.doctorId = doctorId; }
 
@@ -34,4 +37,7 @@ public class AppointmentRequest {
 
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }
+
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
 }

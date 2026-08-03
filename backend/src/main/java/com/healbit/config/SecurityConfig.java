@@ -60,6 +60,7 @@ public class SecurityConfig {
 
                 // Patient-only
                 .requestMatchers("/patients/**").hasRole("PATIENT")
+                .requestMatchers("/payments/**").hasRole("PATIENT")
                 .requestMatchers(HttpMethod.POST, "/appointments").hasRole("PATIENT")
                 .requestMatchers(HttpMethod.DELETE, "/appointments/**").hasRole("PATIENT")
 

@@ -11,6 +11,7 @@ C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\controller\Doc
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\controller\HospitalController.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\controller\PatientController.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\controller\PatientDocumentController.java
+C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\controller\PaymentController.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\controller\RatingController.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\controller\SpecializationController.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\dto\AdminDashboardResponse.java
@@ -40,6 +41,8 @@ C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\dto\PatientLog
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\dto\PatientProfileResponse.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\dto\PatientProfileUpdateRequest.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\dto\PatientRegisterRequest.java
+C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\dto\PaymentOrderResponse.java
+C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\dto\PaymentVerifyRequest.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\dto\RatingRequest.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\dto\RatingResponse.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\dto\SpecializationRequest.java
@@ -55,6 +58,8 @@ C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\entity\Hospita
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\entity\HospitalStatus.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\entity\Patient.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\entity\PatientDocument.java
+C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\entity\PaymentMethod.java
+C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\entity\PaymentStatus.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\entity\Specialization.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\exception\AppointmentConflictException.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\exception\CaptchaException.java
@@ -87,6 +92,8 @@ C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\JwtSer
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\MetricsUtil.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\PatientDocumentService.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\PatientService.java
+C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\PaymentService.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\RatingService.java
+C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\RazorpayService.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\ScheduleUtil.java
 C:\Users\91935\Desktop\Heal-Bit\backend\src\main\java\com\healbit\service\SpecializationService.java
