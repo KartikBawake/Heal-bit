@@ -754,3 +754,7 @@ a.contact-row:hover { text-decoration: none; border-color: var(--primary); backg
   .dash-top-main h1 { font-size: 1.6rem; }
   .next-when { border-right: none; padding-right: 0; }
 }
+
+/* Wide modal (document previews) + in-app PDF viewer */
+.modal-lg { max-width: 900px; }
+.doc-preview-frame { width: 100%; height: 70vh; border: 1px solid var(--border-soft); border-radius: 10px; background: var(--surface-2); }

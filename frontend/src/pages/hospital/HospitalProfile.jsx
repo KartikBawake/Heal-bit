@@ -28,17 +28,22 @@ export default function HospitalProfile() {
   const { values, errors, field, setValue, reset, handleSubmit } = useFormValidation(initial, validate);
   const [feedback, setFeedback] = useState({ type: "", msg: "" });
   const [saving, setSaving] = useState(false);
+  // The photo as it was loaded, so we only send `image` when it actually changed.
+  const [loadedImage, setLoadedImage] = useState(null);
 
   useEffect(() => {
     if (!auth?.user?.id) return;
     getHospital(auth.user.id)
-      .then(({ data }) => reset({
-        hospitalName: data.hospitalName || "", phone: data.phone || "", address: data.address || "",
-        city: data.city || "", state: data.state || "", pincode: data.pincode || "",
-        description: data.description || "", image: data.imageUrl || "",
-        allowCancellationAfterAcceptance: data.allowCancellationAfterAcceptance ?? true,
-        cancellationMinHours: data.cancellationMinHours ?? "",
-      }))
+      .then(({ data }) => {
+        setLoadedImage(data.imageUrl || "");
+        reset({
+          hospitalName: data.hospitalName || "", phone: data.phone || "", address: data.address || "",
+          city: data.city || "", state: data.state || "", pincode: data.pincode || "",
+          description: data.description || "", image: data.imageUrl || "",
+          allowCancellationAfterAcceptance: data.allowCancellationAfterAcceptance ?? true,
+          cancellationMinHours: data.cancellationMinHours ?? "",
+        });
+      })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth]);
@@ -51,7 +56,12 @@ export default function HospitalProfile() {
     const payload = Object.fromEntries(
       Object.entries(v).filter(([k, val]) => !["image", "allowCancellationAfterAcceptance", "cancellationMinHours"].includes(k) && val !== "")
     );
-    payload.image = v.image;
+    // Only send the photo when it changed: a new pick (data URL) or a removal ("").
+    // Re-sending the unchanged Cloudinary URL is pointless, and omitting it protects the
+    // existing photo if the profile failed to load.
+    if (loadedImage !== null && v.image !== loadedImage) {
+      payload.image = v.image;
+    }
     payload.allowCancellationAfterAcceptance = v.allowCancellationAfterAcceptance;
     payload.cancellationMinHours = v.cancellationMinHours === "" ? null : Number(v.cancellationMinHours);
     try {
