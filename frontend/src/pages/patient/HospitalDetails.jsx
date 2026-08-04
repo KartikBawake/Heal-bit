@@ -130,7 +130,7 @@ export default function HospitalDetails() {
 
     // Cash: nothing more to do — booked as "Payment pending".
     if (payMethod === "CASH") {
-      setFeedback({ type: "success", msg: `Appointment booked with ${drName(bookingFor.doctorName)} on ${date} at ${slot}. Pay in cash at your visit.` });
+      setFeedback({ type: "success", msg: `Appointment booked with ${drName(bookingFor.doctorName)} on ${date} at ${slot}. Pay in cash at your visit — we\u2019ve emailed you the details.` });
       setBookingFor(null);
       setSaving(false);
       return;
@@ -157,7 +157,7 @@ export default function HospitalDetails() {
               razorpayPaymentId: resp.razorpay_payment_id,
               razorpaySignature: resp.razorpay_signature,
             });
-            setFeedback({ type: "success", msg: `Booked and paid online with ${drName(bookingFor.doctorName)} on ${date} at ${slot}.` });
+            setFeedback({ type: "success", msg: `Booked and paid online with ${drName(bookingFor.doctorName)} on ${date} at ${slot}. A receipt is on its way to your email.` });
             setBookingFor(null);
           } catch (err) {
             setFeedback({ type: "error", msg: getErrorMessage(err) });

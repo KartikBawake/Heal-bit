@@ -153,6 +153,7 @@ export default function MyAppointments() {
         <div>
           <p className="eyebrow">Patient</p>
           <h1>My appointments</h1>
+          <p className="sub">We'll email you whenever an appointment is confirmed, moved or cancelled.</p>
         </div>
       </div>
 
