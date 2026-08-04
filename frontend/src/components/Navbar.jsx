@@ -1,4 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import Logo from "./Logo";
 
 // Public top bar. A single "Sign in" control that takes you to the role chooser
 // (the cards on the home page), which is the one place to pick a role and sign in/register.
@@ -18,10 +19,7 @@ export default function Navbar() {
     <header className="navbar">
       <div className="navbar-inner">
         <Link to="/" className="nav-brand">
-          <svg className="nav-ecg" viewBox="0 0 52 36" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M2 18 H14 L19 8 L27 28 L33 18 H50" />
-          </svg>
-          Heal<span className="dot">·</span>Bit
+          <Logo size={30} />
         </Link>
 
         <div className="nav-right">

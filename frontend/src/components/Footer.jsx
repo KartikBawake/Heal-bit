@@ -1,4 +1,5 @@
 import Icon from "./icons";
+import Logo from "./Logo";
 
 export default function Footer({ onAbout, onContact }) {
   return (
@@ -6,10 +7,7 @@ export default function Footer({ onAbout, onContact }) {
       <div className="footer-top">
         <div className="footer-brand">
           <div className="nav-brand as-static">
-            <svg className="nav-ecg" viewBox="0 0 52 36" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 18 H14 L19 8 L27 28 L33 18 H50" />
-            </svg>
-            Heal<span className="dot">·</span>Bit
+            <Logo size={30} />
           </div>
           <p className="muted">Coordinated healthcare for patients, hospitals, and administrators.</p>
         </div>

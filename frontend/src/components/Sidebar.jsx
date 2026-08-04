@@ -1,6 +1,7 @@
 import { NavLink, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Icon from "./icons";
+import Logo from "./Logo";
 
 const LINKS = {
   PATIENT: [
@@ -47,10 +48,7 @@ export default function Sidebar({ open, onClose }) {
       <div className={`sidebar-scrim${open ? " show" : ""}`} onClick={onClose} />
       <aside className={`sidebar${open ? " open" : ""}`}>
         <Link to={`/${role?.toLowerCase()}`} className="sidebar-brand" onClick={onClose}>
-          <svg className="nav-ecg" viewBox="0 0 52 36" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M2 18 H14 L19 8 L27 28 L33 18 H50" />
-          </svg>
-          Heal<span className="dot">·</span>Bit
+          <Logo size={30} />
         </Link>
 
         <div className="sidebar-role">{ROLE_LABEL[role] || "Menu"}</div>

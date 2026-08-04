@@ -80,7 +80,6 @@ a:hover { text-decoration: underline; }
 .nav-brand:hover { text-decoration: none; }
 .nav-brand.as-static { cursor: default; }
 .nav-brand .dot { color: var(--accent); }
-.nav-ecg { width: 26px; height: 18px; color: var(--primary); }
 .nav-links { display: flex; gap: 4px; margin-left: 6px; flex: 1; flex-wrap: wrap; }
 .nav-link { padding: 7px 13px; border-radius: 999px; color: var(--muted); font-weight: 500; font-size: 0.92rem; transition: background 0.15s, color 0.15s; }
 .nav-link:hover { background: var(--primary-050); color: var(--primary-700); text-decoration: none; }
@@ -758,3 +757,15 @@ a.contact-row:hover { text-decoration: none; border-color: var(--primary); backg
 /* Wide modal (document previews) + in-app PDF viewer */
 .modal-lg { max-width: 900px; }
 .doc-preview-frame { width: 100%; height: 70vh; border: 1px solid var(--border-soft); border-radius: 10px; background: var(--surface-2); }
+
+/* ============================================================
+   Brand logo (shared by navbar, sidebar and footer)
+   ============================================================ */
+.brand-logo { display: inline-flex; align-items: center; gap: 10px; }
+.brand-mark { flex: 0 0 auto; border-radius: 8px; display: block; }
+.brand-word { font-family: "Fraunces", Georgia, serif; font-weight: 600; font-size: 1.28rem; letter-spacing: -0.02em; color: var(--ink); line-height: 1; }
+.brand-word .dot { color: var(--accent); }
+/* The tile lifts slightly when its link is hovered. */
+.nav-brand:hover .brand-mark,
+.sidebar-brand:hover .brand-mark { transform: translateY(-1px); }
+.brand-mark { transition: transform 0.15s ease; }
