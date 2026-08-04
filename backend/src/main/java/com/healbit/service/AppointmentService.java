@@ -51,15 +51,18 @@ public class AppointmentService {
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
     private final RazorpayService razorpayService;
+    private final AppointmentMailer mailer;
 
     public AppointmentService(AppointmentRepository appointmentRepository,
                               PatientRepository patientRepository,
                               DoctorRepository doctorRepository,
-                              RazorpayService razorpayService) {
+                              RazorpayService razorpayService,
+                              AppointmentMailer mailer) {
         this.appointmentRepository = appointmentRepository;
         this.patientRepository = patientRepository;
         this.doctorRepository = doctorRepository;
         this.razorpayService = razorpayService;
+        this.mailer = mailer;
     }
 
     // =====================================================================
@@ -100,7 +103,13 @@ public class AppointmentService {
         appointment.setPaymentMethod(parseMethod(request.getPaymentMethod()));
         appointment.claimSlot();
 
-        return toResponse(saveClaimingSlot(appointment));
+        Appointment saved = saveClaimingSlot(appointment);
+        // For online payments the confirmation email is sent once the payment succeeds,
+        // so an abandoned checkout never produces a misleading "we got your booking" email.
+        if (saved.getPaymentMethod() != PaymentMethod.ONLINE) {
+            mailer.bookingReceived(saved);
+        }
+        return toResponse(saved);
     }
 
     /** Patient moves an existing appointment to a different slot (same doctor). */
@@ -129,7 +138,9 @@ public class AppointmentService {
         appointment.setStatus(AppointmentStatus.PENDING);
         appointment.claimSlot();
 
-        return toResponse(saveClaimingSlot(appointment));
+        Appointment moved = saveClaimingSlot(appointment);
+        mailer.rescheduled(moved);
+        return toResponse(moved);
     }
 
     // =====================================================================
@@ -201,7 +212,15 @@ public class AppointmentService {
         }
 
         appointment.setStatus(target);
-        return toResponse(appointmentRepository.save(appointment));
+        Appointment updated = appointmentRepository.save(appointment);
+
+        switch (target) {
+            case CONFIRMED -> mailer.confirmed(updated);
+            case REJECTED -> mailer.rejected(updated);
+            case COMPLETED -> mailer.completed(updated);
+            default -> { /* no email for other transitions */ }
+        }
+        return toResponse(updated);
     }
 
     // =====================================================================
@@ -244,7 +263,7 @@ public class AppointmentService {
         maybeRefund(appointment);
         appointment.setStatus(AppointmentStatus.CANCELLED);
         appointment.releaseSlot();
-        appointmentRepository.save(appointment);
+        mailer.cancelled(appointmentRepository.save(appointment));
     }
 
     /** Hard-deletes an unpaid booking (used to release the slot if an online payment is abandoned). */
@@ -265,7 +284,7 @@ public class AppointmentService {
         maybeRefund(appointment);
         appointment.setStatus(AppointmentStatus.EXPIRED);
         appointment.releaseSlot();
-        appointmentRepository.save(appointment);
+        mailer.expired(appointmentRepository.save(appointment));
     }
 
     /** Cancels an appointment on the platform's behalf (e.g. the doctor was removed). */
@@ -273,7 +292,7 @@ public class AppointmentService {
         maybeRefund(appointment);
         appointment.setStatus(AppointmentStatus.CANCELLED);
         appointment.releaseSlot();
-        appointmentRepository.save(appointment);
+        mailer.cancelled(appointmentRepository.save(appointment));
     }
 
     // =====================================================================

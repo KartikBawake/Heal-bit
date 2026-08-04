@@ -27,10 +27,13 @@ public class PaymentService {
 
     private final AppointmentRepository appointmentRepository;
     private final RazorpayService razorpay;
+    private final AppointmentMailer mailer;
 
-    public PaymentService(AppointmentRepository appointmentRepository, RazorpayService razorpay) {
+    public PaymentService(AppointmentRepository appointmentRepository, RazorpayService razorpay,
+                          AppointmentMailer mailer) {
         this.appointmentRepository = appointmentRepository;
         this.razorpay = razorpay;
+        this.mailer = mailer;
     }
 
     public PaymentOrderResponse createOrder(Long patientId, Long appointmentId) {
@@ -83,7 +86,7 @@ public class PaymentService {
         a.setPaymentStatus(PaymentStatus.PAID);
         a.setRazorpayPaymentId(req.getRazorpayPaymentId());
         a.setPaidAt(LocalDateTime.now());
-        appointmentRepository.save(a);
+        mailer.bookingPaid(appointmentRepository.save(a));
         return new ApiResponse(true, "Payment successful");
     }
 
