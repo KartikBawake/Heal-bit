@@ -408,25 +408,8 @@ public class AppointmentService {
                 .thenComparing(AppointmentResponse::getAppointmentTime, Comparator.reverseOrder());
     }
 
+    /** Shared with DoctorDashboardService — see AppointmentMapper. */
     private AppointmentResponse toResponse(Appointment a) {
-        AppointmentResponse r = new AppointmentResponse();
-        r.setAppointmentId(a.getAppointmentId());
-        r.setPatientId(a.getPatient().getPatientId());
-        r.setPatientName(a.getPatient().getFullName());
-        r.setHospitalId(a.getHospital().getHospitalId());
-        r.setHospitalName(a.getHospital().getHospitalName());
-        r.setDoctorId(a.getDoctor().getDoctorId());
-        r.setDoctorName(a.getDoctor().getDoctorName());
-        r.setDoctorSpecialization(a.getDoctor().getSpecialization());
-        r.setAppointmentDate(a.getAppointmentDate());
-        r.setAppointmentTime(a.getAppointmentTime());
-        r.setReason(a.getReason());
-        r.setStatus(a.getStatus());
-        r.setCreatedAt(a.getCreatedAt());
-        r.setPaymentStatus(a.getPaymentStatus());
-        r.setPaymentMethod(a.getPaymentMethod());
-        r.setConsultationFee(a.getDoctor().getConsultationFee());
-        r.setPaymentAmount(a.getPaymentAmount());
-        return r;
+        return AppointmentMapper.toResponse(a);
     }
 }

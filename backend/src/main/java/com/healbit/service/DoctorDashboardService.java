@@ -77,21 +77,8 @@ public class DoctorDashboardService {
         return list.stream().filter(a -> a.getStatus() == status).count();
     }
 
+    /** Shared with AppointmentService so the payment fields can never go missing again. */
     private AppointmentResponse toResponse(Appointment a) {
-        AppointmentResponse r = new AppointmentResponse();
-        r.setAppointmentId(a.getAppointmentId());
-        r.setPatientId(a.getPatient().getPatientId());
-        r.setPatientName(a.getPatient().getFullName());
-        r.setHospitalId(a.getHospital().getHospitalId());
-        r.setHospitalName(a.getHospital().getHospitalName());
-        r.setDoctorId(a.getDoctor().getDoctorId());
-        r.setDoctorName(a.getDoctor().getDoctorName());
-        r.setDoctorSpecialization(a.getDoctor().getSpecialization());
-        r.setAppointmentDate(a.getAppointmentDate());
-        r.setAppointmentTime(a.getAppointmentTime());
-        r.setReason(a.getReason());
-        r.setStatus(a.getStatus());
-        r.setCreatedAt(a.getCreatedAt());
-        return r;
+        return AppointmentMapper.toResponse(a);
     }
 }
