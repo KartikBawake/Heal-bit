@@ -14,7 +14,7 @@ const PAGE_SIZE = 12;
 const empty = {
   doctorId: null, doctorName: "", email: "", password: "", specialization: "",
   qualification: "", experience: "", consultationFee: "",
-  workingDays: [], startTime: "", endTime: "", breaks: [],
+  workingDays: [], startTime: "", endTime: "", breaks: [], slotDurationMinutes: 30,
 };
 
 export default function ManageDoctors() {
@@ -66,7 +66,7 @@ export default function ManageDoctors() {
       specialization: d.specialization || "", qualification: d.qualification || "",
       experience: d.experience ?? "", consultationFee: d.consultationFee ?? "",
       workingDays: d.workingDays || [], startTime: d.startTime || "", endTime: d.endTime || "",
-      breaks: d.breaks || [],
+      breaks: d.breaks || [], slotDurationMinutes: d.slotDurationMinutes || 30,
     });
     setShowForm(true);
     setFeedback({ type: "", msg: "" });
@@ -81,6 +81,7 @@ export default function ManageDoctors() {
     if (!form.specialization) return "Please choose a specialization.";
     if (form.experience === "" || Number(form.experience) < 0) return "Enter valid years of experience.";
     if (form.startTime && form.endTime && form.startTime >= form.endTime) return "Start time must be before end time.";
+    if (!Number.isInteger(Number(form.slotDurationMinutes)) || Number(form.slotDurationMinutes) < 5 || Number(form.slotDurationMinutes) > 240) return "Slot duration must be between 5 and 240 minutes.";
     for (const b of form.breaks) {
       if (!b.startTime || !b.endTime) return "Each break needs a start and end time.";
       if (b.startTime >= b.endTime) return "Each break's start time must be before its end time.";
@@ -104,6 +105,7 @@ export default function ManageDoctors() {
       consultationFee: form.consultationFee === "" ? null : Number(form.consultationFee),
       startTime: form.startTime || null,
       endTime: form.endTime || null,
+      slotDurationMinutes: Number(form.slotDurationMinutes),
     };
     try {
       if (form.doctorId) {
@@ -197,6 +199,11 @@ export default function ManageDoctors() {
                 <input className="input" type="number" name="consultationFee" value={form.consultationFee} onChange={onChange} min="0" />
               </div>
               <div className="field" />
+            </div>
+
+            <div className="field" style={{ maxWidth: 280 }}>
+              <label>Appointment slot duration (minutes)</label>
+              <input className="input" type="number" name="slotDurationMinutes" value={form.slotDurationMinutes} onChange={onChange} min="5" max="240" step="5" required />
             </div>
 
             <div className="field">

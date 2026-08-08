@@ -15,12 +15,14 @@ const LINKS = {
     { to: "/hospital", label: "Dashboard", icon: "grid", end: true },
     { to: "/hospital/doctors", label: "Doctors", icon: "stethoscope" },
     { to: "/hospital/appointments", label: "Appointments", icon: "calendar" },
+    { to: "/hospital/leaves", label: "Leave requests", icon: "clipboard" },
     { to: "/hospital/profile", label: "Profile", icon: "hospital" },
   ],
   DOCTOR: [
     { to: "/doctor", label: "Dashboard", icon: "grid", end: true },
     { to: "/doctor/appointments", label: "Appointments", icon: "calendar" },
     { to: "/doctor/schedule", label: "My schedule", icon: "clock" },
+    { to: "/doctor/leaves", label: "Leave requests", icon: "clipboard" },
   ],
   ADMIN: [
     { to: "/admin", label: "Dashboard", icon: "grid", end: true },

@@ -22,11 +22,13 @@ import PatientDocuments from "./pages/patient/PatientDocuments";
 import HospitalDashboard from "./pages/hospital/HospitalDashboard";
 import ManageDoctors from "./pages/hospital/ManageDoctors";
 import HospitalAppointments from "./pages/hospital/HospitalAppointments";
+import ManageLeaves from "./pages/hospital/ManageLeaves";
 import HospitalProfile from "./pages/hospital/HospitalProfile";
 
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import DoctorAppointments from "./pages/doctor/DoctorAppointments";
 import DoctorSchedule from "./pages/doctor/DoctorSchedule";
+import DoctorLeaves from "./pages/doctor/DoctorLeaves";
 import DoctorPatientDocuments from "./pages/doctor/DoctorPatientDocuments";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -63,12 +65,14 @@ export default function App() {
         <Route path="/hospital" element={<ProtectedRoute allow={["HOSPITAL"]}><HospitalDashboard /></ProtectedRoute>} />
         <Route path="/hospital/doctors" element={<ProtectedRoute allow={["HOSPITAL"]}><ManageDoctors /></ProtectedRoute>} />
         <Route path="/hospital/appointments" element={<ProtectedRoute allow={["HOSPITAL"]}><HospitalAppointments /></ProtectedRoute>} />
+        <Route path="/hospital/leaves" element={<ProtectedRoute allow={["HOSPITAL"]}><ManageLeaves /></ProtectedRoute>} />
         <Route path="/hospital/profile" element={<ProtectedRoute allow={["HOSPITAL"]}><HospitalProfile /></ProtectedRoute>} />
 
         {/* Doctor */}
         <Route path="/doctor" element={<ProtectedRoute allow={["DOCTOR"]}><DoctorDashboard /></ProtectedRoute>} />
         <Route path="/doctor/appointments" element={<ProtectedRoute allow={["DOCTOR"]}><DoctorAppointments /></ProtectedRoute>} />
         <Route path="/doctor/schedule" element={<ProtectedRoute allow={["DOCTOR"]}><DoctorSchedule /></ProtectedRoute>} />
+        <Route path="/doctor/leaves" element={<ProtectedRoute allow={["DOCTOR"]}><DoctorLeaves /></ProtectedRoute>} />
         <Route path="/doctor/patients/:patientId/documents" element={<ProtectedRoute allow={["DOCTOR"]}><DoctorPatientDocuments /></ProtectedRoute>} />
 
         {/* Admin */}

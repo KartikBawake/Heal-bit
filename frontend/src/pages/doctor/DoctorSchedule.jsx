@@ -5,12 +5,12 @@ import { WEEK_DAYS } from "../../constants";
 import BreakEditor from "../../components/BreakEditor";
 import { doctorStatusTag } from "../../utils/doctorStatus";
 
-function countSlots(start, end) {
+function countSlots(start, end, duration) {
   if (!start || !end) return 0;
   const [sh, sm] = start.split(":").map(Number);
   const [eh, em] = end.split(":").map(Number);
   const mins = eh * 60 + em - (sh * 60 + sm);
-  return mins > 0 ? Math.floor(mins / 30) : 0;
+  return mins > 0 && duration > 0 ? Math.floor(mins / duration) : 0;
 }
 
 export default function DoctorSchedule() {
@@ -19,6 +19,7 @@ export default function DoctorSchedule() {
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   const [fee, setFee] = useState("");
+  const [slotDurationMinutes, setSlotDurationMinutes] = useState(30);
   const [breaks, setBreaks] = useState([]);
   const [feedback, setFeedback] = useState({ type: "", msg: "" });
   const [saving, setSaving] = useState(false);
@@ -31,6 +32,7 @@ export default function DoctorSchedule() {
         setStart(data.startTime || "");
         setEnd(data.endTime || "");
         setFee(data.consultationFee ?? "");
+        setSlotDurationMinutes(data.slotDurationMinutes || 30);
         setBreaks(data.breaks || []);
       })
       .catch((e) => setFeedback({ type: "error", msg: getErrorMessage(e) }));
@@ -39,7 +41,7 @@ export default function DoctorSchedule() {
   const toggleDay = (value) =>
     setDays((d) => (d.includes(value) ? d.filter((x) => x !== value) : [...d, value]));
 
-  const slots = useMemo(() => countSlots(start, end), [start, end]);
+  const slots = useMemo(() => countSlots(start, end, Number(slotDurationMinutes)), [start, end, slotDurationMinutes]);
 
   const validateBreaks = () => {
     for (const b of breaks) {
@@ -56,6 +58,7 @@ export default function DoctorSchedule() {
     if (days.length === 0) return setFeedback({ type: "error", msg: "Pick at least one working day." });
     if (!start || !end) return setFeedback({ type: "error", msg: "Set both start and end times." });
     if (start >= end) return setFeedback({ type: "error", msg: "Start time must be before end time." });
+    if (!Number.isInteger(Number(slotDurationMinutes)) || Number(slotDurationMinutes) < 5 || Number(slotDurationMinutes) > 240) return setFeedback({ type: "error", msg: "Slot duration must be between 5 and 240 minutes." });
     const breakErr = validateBreaks();
     if (breakErr) return setFeedback({ type: "error", msg: breakErr });
 
@@ -66,6 +69,7 @@ export default function DoctorSchedule() {
         startTime: start,
         endTime: end,
         consultationFee: fee === "" ? null : Number(fee),
+        slotDurationMinutes: Number(slotDurationMinutes),
         breaks,
       });
       setProfile(data);
@@ -130,6 +134,11 @@ export default function DoctorSchedule() {
         <div className="field">
           <label>Consultation fee (₹)</label>
           <input className="input" type="number" min="0" value={fee} onChange={(e) => setFee(e.target.value)} />
+        </div>
+
+        <div className="field">
+          <label>Appointment slot duration (minutes)</label>
+          <input className="input" type="number" min="5" max="240" step="5" value={slotDurationMinutes} onChange={(e) => setSlotDurationMinutes(e.target.value)} required />
         </div>
 
         {slots > 0 && (

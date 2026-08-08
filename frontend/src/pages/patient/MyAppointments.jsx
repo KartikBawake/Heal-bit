@@ -272,7 +272,7 @@ export default function MyAppointments() {
 
             {reDate && (
               <div className="field">
-                <label>Available 30-minute slots</label>
+                <label>Available appointment slots</label>
                 {reSlotsLoading ? (
                   <p className="muted">Checking availability…</p>
                 ) : reSlots.length === 0 ? (

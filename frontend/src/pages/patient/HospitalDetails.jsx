@@ -287,7 +287,7 @@ export default function HospitalDetails() {
 
             {date && !dayError && (
               <div className="field">
-                <label>Available 30-minute slots</label>
+                <label>Available appointment slots</label>
                 {slotsLoading ? (
                   <p className="muted">Checking availability…</p>
                 ) : slots.length === 0 ? (

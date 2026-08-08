@@ -7,7 +7,7 @@ export const addDoctor = (data) => api.post("/doctors", data);
 export const updateDoctor = (data) => api.put("/doctors", data); // data must include doctorId
 export const deleteDoctor = (id) => api.delete(`/doctors/${id}`);
 
-// Free 30-minute slot start times ("HH:mm") for a doctor on a date (yyyy-MM-dd)
+// Free per-doctor slot start times ("HH:mm") for a doctor on a date (yyyy-MM-dd)
 export const getSlots = (id, date) => api.get(`/doctors/${id}/slots`, { params: { date } });
 
 // Doctor self-service
