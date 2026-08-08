@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalTime;
 import java.util.List;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 // A doctor updates their own schedule and fee from the doctor portal.
 public class DoctorAvailabilityRequest {
@@ -15,6 +17,10 @@ public class DoctorAvailabilityRequest {
 
     @JsonFormat(pattern = "HH:mm")
     private LocalTime endTime;
+
+    @Min(value = 5, message = "Slot duration must be at least 5 minutes")
+    @Max(value = 240, message = "Slot duration cannot exceed 240 minutes")
+    private Integer slotDurationMinutes;
 
     private Double consultationFee;
 
@@ -29,6 +35,9 @@ public class DoctorAvailabilityRequest {
 
     public LocalTime getEndTime() { return endTime; }
     public void setEndTime(LocalTime endTime) { this.endTime = endTime; }
+
+    public Integer getSlotDurationMinutes() { return slotDurationMinutes; }
+    public void setSlotDurationMinutes(Integer slotDurationMinutes) { this.slotDurationMinutes = slotDurationMinutes; }
 
     public Double getConsultationFee() { return consultationFee; }
     public void setConsultationFee(Double consultationFee) { this.consultationFee = consultationFee; }

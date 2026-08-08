@@ -9,6 +9,7 @@ import com.healbit.exception.AppointmentConflictException;
 import com.healbit.exception.ResourceNotFoundException;
 import com.healbit.exception.UnauthorizedException;
 import com.healbit.repository.AppointmentRepository;
+import com.healbit.repository.DoctorLeaveRepository;
 import com.healbit.repository.DoctorRepository;
 import com.healbit.repository.PatientRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -48,17 +49,19 @@ public class AppointmentService {
     private int maxDaysAhead;
 
     private final AppointmentRepository appointmentRepository;
+    private final DoctorLeaveRepository doctorLeaveRepository;
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
     private final RazorpayService razorpayService;
     private final AppointmentMailer mailer;
 
-    public AppointmentService(AppointmentRepository appointmentRepository,
+    public AppointmentService(AppointmentRepository appointmentRepository, DoctorLeaveRepository doctorLeaveRepository,
                               PatientRepository patientRepository,
                               DoctorRepository doctorRepository,
                               RazorpayService razorpayService,
                               AppointmentMailer mailer) {
         this.appointmentRepository = appointmentRepository;
+        this.doctorLeaveRepository = doctorLeaveRepository;
         this.patientRepository = patientRepository;
         this.doctorRepository = doctorRepository;
         this.razorpayService = razorpayService;
@@ -321,10 +324,14 @@ public class AppointmentService {
         if (!days.contains(date.getDayOfWeek())) {
             throw new AppointmentConflictException("The doctor does not work on the selected day");
         }
+        if (doctorLeaveRepository.existsByDoctor_DoctorIdAndStatusAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                doctor.getDoctorId(), com.healbit.entity.LeaveStatus.APPROVED, date, date)) {
+            throw new AppointmentConflictException("The doctor is on approved leave on the selected day");
+        }
         List<com.healbit.dto.BreakPeriod> breaks = ScheduleUtil.parseBreaks(doctor.getBreaks());
-        if (!ScheduleUtil.generateSlots(doctor.getStartTime(), doctor.getEndTime(), breaks).contains(time)) {
+        if (!ScheduleUtil.generateSlots(doctor.getStartTime(), doctor.getEndTime(), breaks, doctor.getSlotDurationMinutes()).contains(time)) {
             throw new AppointmentConflictException(
-                    "Please choose a valid 30-minute slot within the doctor's working hours");
+                    "Please choose a valid slot within the doctor's working hours");
         }
         // Fast, friendly pre-check. The unique slot_key index is what actually guarantees it.
         boolean taken = appointmentRepository

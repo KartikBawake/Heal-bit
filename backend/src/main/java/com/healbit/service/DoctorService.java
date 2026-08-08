@@ -14,6 +14,7 @@ import com.healbit.exception.UnauthorizedException;
 import com.healbit.repository.AppointmentRepository;
 import com.healbit.repository.DoctorRatingRepository;
 import com.healbit.repository.DoctorRepository;
+import com.healbit.repository.DoctorLeaveRepository;
 import com.healbit.repository.HospitalRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,7 @@ public class DoctorService {
     private final HospitalRepository hospitalRepository;
     private final AppointmentRepository appointmentRepository;
     private final DoctorRatingRepository doctorRatingRepository;
+    private final DoctorLeaveRepository doctorLeaveRepository;
     private final PasswordEncoder passwordEncoder;
     private final AppointmentService appointmentService;
 
@@ -47,12 +49,14 @@ public class DoctorService {
                          HospitalRepository hospitalRepository,
                          AppointmentRepository appointmentRepository,
                          DoctorRatingRepository doctorRatingRepository,
+                         DoctorLeaveRepository doctorLeaveRepository,
                          PasswordEncoder passwordEncoder,
                          AppointmentService appointmentService) {
         this.doctorRepository = doctorRepository;
         this.hospitalRepository = hospitalRepository;
         this.appointmentRepository = appointmentRepository;
         this.doctorRatingRepository = doctorRatingRepository;
+        this.doctorLeaveRepository = doctorLeaveRepository;
         this.passwordEncoder = passwordEncoder;
         this.appointmentService = appointmentService;
     }
@@ -169,6 +173,7 @@ public class DoctorService {
         }
         if (request.getStartTime() != null) doctor.setStartTime(request.getStartTime());
         if (request.getEndTime() != null) doctor.setEndTime(request.getEndTime());
+        if (request.getSlotDurationMinutes() != null) doctor.setSlotDurationMinutes(request.getSlotDurationMinutes());
         if (doctor.getStartTime() != null && doctor.getEndTime() != null
                 && !doctor.getStartTime().isBefore(doctor.getEndTime())) {
             throw new IllegalArgumentException("Start time must be before end time");
@@ -197,7 +202,7 @@ public class DoctorService {
         if (doctor.getDoctorId() == null) return;
         Set<DayOfWeek> days = ScheduleUtil.parseWorkingDays(doctor.getWorkingDays());
         List<BreakPeriod> breaks = ScheduleUtil.parseBreaks(doctor.getBreaks());
-        List<LocalTime> slots = ScheduleUtil.generateSlots(doctor.getStartTime(), doctor.getEndTime(), breaks);
+        List<LocalTime> slots = ScheduleUtil.generateSlots(doctor.getStartTime(), doctor.getEndTime(), breaks, doctor.getSlotDurationMinutes());
 
         List<Appointment> stranded = new ArrayList<>();
         for (Appointment a : upcomingLiveAppointments(doctor.getDoctorId())) {
@@ -221,7 +226,7 @@ public class DoctorService {
 
     // ---------------- Slots ----------------
 
-    /** Free 30-minute slot start times ("HH:mm") for a doctor on a given date. */
+    /** Free slot start times ("HH:mm") for a doctor on a given date. */
     public List<String> getAvailableSlots(Long doctorId, LocalDate date) {
         Doctor doctor = findDoctor(doctorId);
         List<String> out = new ArrayList<>();
@@ -231,6 +236,8 @@ public class DoctorService {
         }
         Set<DayOfWeek> days = ScheduleUtil.parseWorkingDays(doctor.getWorkingDays());
         if (!days.contains(date.getDayOfWeek())) return out;
+        if (doctorLeaveRepository.existsByDoctor_DoctorIdAndStatusAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                doctorId, com.healbit.entity.LeaveStatus.APPROVED, date, date)) return out;
 
         Set<LocalTime> taken = appointmentRepository
                 .findByDoctor_DoctorIdAndAppointmentDateAndStatusIn(doctorId, date, LIVE)
@@ -240,7 +247,7 @@ public class DoctorService {
         boolean isToday = date.equals(LocalDate.now());
         LocalTime now = LocalTime.now();
 
-        for (LocalTime slot : ScheduleUtil.generateSlots(doctor.getStartTime(), doctor.getEndTime(), breaks)) {
+        for (LocalTime slot : ScheduleUtil.generateSlots(doctor.getStartTime(), doctor.getEndTime(), breaks, doctor.getSlotDurationMinutes())) {
             if (taken.contains(slot)) continue;
             if (isToday && !slot.isAfter(now)) continue;
             out.add(slot.toString().length() == 5 ? slot.toString() : String.format("%02d:%02d", slot.getHour(), slot.getMinute()));
@@ -272,6 +279,7 @@ public class DoctorService {
         }
         if (request.getStartTime() != null) doctor.setStartTime(request.getStartTime());
         if (request.getEndTime() != null) doctor.setEndTime(request.getEndTime());
+        if (request.getSlotDurationMinutes() != null) doctor.setSlotDurationMinutes(request.getSlotDurationMinutes());
         if (doctor.getStartTime() != null && doctor.getEndTime() != null
                 && !doctor.getStartTime().isBefore(doctor.getEndTime())) {
             throw new IllegalArgumentException("Start time must be before end time");
@@ -308,7 +316,7 @@ public class DoctorService {
         List<Appointment> upcoming = appointmentRepository
                 .findByDoctor_DoctorIdAndAppointmentDateGreaterThanEqualAndStatusIn(doctor.getDoctorId(), today, LIVE);
         List<BreakPeriod> breaks = ScheduleUtil.parseBreaks(doctor.getBreaks());
-        List<LocalTime> slots = ScheduleUtil.generateSlots(doctor.getStartTime(), doctor.getEndTime(), breaks);
+        List<LocalTime> slots = ScheduleUtil.generateSlots(doctor.getStartTime(), doctor.getEndTime(), breaks, doctor.getSlotDurationMinutes());
         if (slots.isEmpty()) return false;
         LocalTime now = LocalTime.now();
 
@@ -344,6 +352,7 @@ public class DoctorService {
         r.setWorkingDays(ScheduleUtil.workingDaysList(doctor.getWorkingDays()));
         r.setStartTime(doctor.getStartTime());
         r.setEndTime(doctor.getEndTime());
+        r.setSlotDurationMinutes(doctor.getSlotDurationMinutes());
         r.setAvailable(computeAvailable(doctor));
         List<BreakPeriod> breaks = ScheduleUtil.parseBreaks(doctor.getBreaks());
         r.setBreaks(breaks);

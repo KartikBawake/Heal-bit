@@ -42,6 +42,10 @@ public class DoctorRequest {
     @JsonFormat(pattern = "HH:mm")
     private LocalTime endTime;
 
+    @Min(value = 5, message = "Slot duration must be at least 5 minutes")
+    @Max(value = 240, message = "Slot duration cannot exceed 240 minutes")
+    private Integer slotDurationMinutes;
+
     // Recurring daily breaks (lunch, recess, etc.) within the working window.
     private List<BreakPeriod> breaks;
 
@@ -77,6 +81,9 @@ public class DoctorRequest {
 
     public LocalTime getEndTime() { return endTime; }
     public void setEndTime(LocalTime endTime) { this.endTime = endTime; }
+
+    public Integer getSlotDurationMinutes() { return slotDurationMinutes; }
+    public void setSlotDurationMinutes(Integer slotDurationMinutes) { this.slotDurationMinutes = slotDurationMinutes; }
 
     public List<BreakPeriod> getBreaks() { return breaks; }
     public void setBreaks(List<BreakPeriod> breaks) { this.breaks = breaks; }

@@ -13,7 +13,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Shared helpers for fixed-length (30 minute) appointment slots and weekly schedules. */
+/** Shared helpers for per-doctor appointment slots and weekly schedules. */
 public final class ScheduleUtil {
 
     public static final int SLOT_MINUTES = 30;
@@ -65,7 +65,7 @@ public final class ScheduleUtil {
 
     /** All 30-minute slot start times within [start, end). Last slot ends at or before end. */
     public static List<LocalTime> generateSlots(LocalTime start, LocalTime end) {
-        return generateSlots(start, end, null);
+        return generateSlots(start, end, null, SLOT_MINUTES);
     }
 
     /**
@@ -81,11 +81,17 @@ public final class ScheduleUtil {
      * any configurable duration, not just 30-minute multiples.
      */
     public static List<LocalTime> generateSlots(LocalTime start, LocalTime end, List<BreakPeriod> breaks) {
+        return generateSlots(start, end, breaks, SLOT_MINUTES);
+    }
+
+    public static List<LocalTime> generateSlots(LocalTime start, LocalTime end, List<BreakPeriod> breaks, Integer slotMinutes) {
         List<LocalTime> slots = new ArrayList<>();
         if (start == null || end == null || !start.isBefore(end)) return slots;
+        int duration = slotMinutes == null ? SLOT_MINUTES : slotMinutes;
+        if (duration < 5 || duration > 240) return slots;
         LocalTime t = start;
-        while (!t.plusMinutes(SLOT_MINUTES).isAfter(end)) {
-            LocalTime slotEnd = t.plusMinutes(SLOT_MINUTES);
+        while (!t.plusMinutes(duration).isAfter(end)) {
+            LocalTime slotEnd = t.plusMinutes(duration);
             BreakPeriod overlapping = overlappingBreak(t, slotEnd, breaks);
             if (overlapping != null) {
                 // Skip straight to the moment the break ends; don't add this slot.

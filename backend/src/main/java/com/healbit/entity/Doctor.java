@@ -43,6 +43,11 @@ public class Doctor {
 
     private LocalTime endTime;
 
+    // Length of this doctor's appointments in minutes. Existing doctors keep the 30-minute default.
+    // Nullable for a safe schema upgrade; null is treated as the legacy 30-minute default.
+    @Column
+    private Integer slotDurationMinutes = 30;
+
     // Recurring daily break windows (e.g. lunch, recess), serialized as "label|HH:mm|HH:mm;label|HH:mm|HH:mm"
     @Column(length = 500)
     private String breaks;
@@ -88,6 +93,9 @@ public class Doctor {
 
     public LocalTime getEndTime() { return endTime; }
     public void setEndTime(LocalTime endTime) { this.endTime = endTime; }
+
+    public Integer getSlotDurationMinutes() { return slotDurationMinutes; }
+    public void setSlotDurationMinutes(Integer slotDurationMinutes) { this.slotDurationMinutes = slotDurationMinutes; }
 
     public String getBreaks() { return breaks; }
     public void setBreaks(String breaks) { this.breaks = breaks; }

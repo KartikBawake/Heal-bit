@@ -25,6 +25,8 @@ public class DoctorResponse {
     @JsonFormat(pattern = "HH:mm")
     private LocalTime endTime;
 
+    private Integer slotDurationMinutes;
+
     // Recurring daily breaks (lunch, recess, etc.) within the working window.
     private List<BreakPeriod> breaks;
 
@@ -93,6 +95,9 @@ public class DoctorResponse {
 
     public LocalTime getEndTime() { return endTime; }
     public void setEndTime(LocalTime endTime) { this.endTime = endTime; }
+
+    public Integer getSlotDurationMinutes() { return slotDurationMinutes; }
+    public void setSlotDurationMinutes(Integer slotDurationMinutes) { this.slotDurationMinutes = slotDurationMinutes; }
 
     public boolean isAvailable() { return available; }
     public void setAvailable(boolean available) { this.available = available; }
